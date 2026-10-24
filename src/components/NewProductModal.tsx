@@ -6,6 +6,7 @@ import { formatCOP, parseCOPInput } from "../utils/formatters";
 
 interface NewProductModalProps {
   onClose: () => void;
+  onStartClose?: () => void;
   onOpenSuppliers: () => void;
 }
 
@@ -56,7 +57,11 @@ const AUDIO_CONNECTIONS = ["USB-C", "Lightning", "MagSafe"];
  * 3. Scroll vertical independiente con overscroll-contain e inercia táctil nativa.
  * 4. Nomenclatura concisa y limpia ("Cubo") sin contenedores de autocompletado vacíos.
  */
-export default function NewProductModal({ onClose, onOpenSuppliers }: NewProductModalProps) {
+export default function NewProductModal({
+  onClose,
+  onStartClose,
+  onOpenSuppliers,
+}: NewProductModalProps) {
   const { suppliers, addProduct } = useInventory();
 
   const [category, setCategory] = useState<ProductCategory>("Cargadores y Cables");
@@ -161,6 +166,7 @@ export default function NewProductModal({ onClose, onOpenSuppliers }: NewProduct
   return (
     <ModalSheet
       onClose={onClose}
+      onStartClose={onStartClose}
       title="Nuevo producto"
       footer={
         <button

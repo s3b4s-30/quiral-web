@@ -37,3 +37,7 @@ La arquitectura de Quiral se estructura bajo el principio de separación de resp
 
 ### ADR-E: Persistencia local validada y tolerante a fallos
 * **Definición:** Las preferencias y el inventario local se leen mediante validadores de dominio y se escriben con errores explícitos. Los datos inválidos o un almacenamiento no disponible restauran el estado inicial sin convertir una carga corrupta en estado operativo.
+
+### ADR-F: Flujo POS modular sobre el contexto de inventario
+* **Definición:** `PosView` solo coordina búsqueda, filtros y composición del catálogo. `CartSummaryBar` presenta el resumen accionable y `CheckoutModal` encapsula pago, descuento y confirmación. El carrito vive en `InventoryContext` para que el badge de `Navbar`, el catálogo y el checkout compartan una única fuente de verdad.
+* **Integridad:** La confirmación valida nuevamente el lote y el stock antes de aplicar una actualización atómica; si algún lote cambió mientras el checkout estaba abierto, la venta se rechaza sin descontar unidades parcialmente.

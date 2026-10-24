@@ -25,3 +25,34 @@ export interface Product {
   createdAt: string;
 }
 
+export interface CartItem {
+  productId: string;
+  batchId: string;
+  quantity: number;
+  unitPrice: number;
+}
+
+export type PaymentMethod = "Efectivo" | "Nequi" | "Bancolombia" | "Tarjeta";
+
+export interface SaleItem {
+  id: string;
+  productId: string;
+  productName: string;
+  qty: number;
+  unitPrice: number;
+  batchId?: string;
+  warrantyDays: number;
+  warrantyClaimed?: boolean;
+  warrantyClaimNote?: string;
+}
+
+export interface Sale {
+  id: string;
+  saleNumber: number;
+  customerName: string;
+  note?: string;
+  paymentMethod: PaymentMethod;
+  totalAmount: number;
+  createdAt: string;
+  items: SaleItem[];
+}

@@ -19,8 +19,8 @@ La aplicación funciona como una Single Page Application (SPA). El componente ra
 * **Configuración y Tema:** Desde el botón de tres puntos (`...`) ubicado en la esquina superior derecha de las vistas principales, se despliega un popover que permite alternar el tema visual de la aplicación (`Auto`, `Claro`, `Oscuro`), consultar el estado de la tienda, acceder a la gestión de **Proveedores** o ejecutar el **Cierre de sesión**.
 
 ### B. Flujo de Venta y Cobro en Mostrador (`PosView.tsx`)
-* **Selección y Carrito:** El operador busca o filtra artículos y los añade al carrito. La pestaña `"Vender"` muestra un badge rojo con la cantidad total de unidades, y aparece una barra flotante inferior con el resumen y acceso a `"Cobro y Venta"`.
-* **Checkout y Lotes:** En el modal de cobro se pueden editar precios unitarios de forma individual, alternar el lote/proveedor mediante pastillas de colores (`Yetcell` vs `Mymobile`), seleccionar el método de pago (`Efectivo`, `Nequi`, `Bancolombia`, `Tarjeta`), aplicar un descuento global y completar la venta.
+* **Selección y Carrito:** `PosView` filtra artículos por texto y categoría, muestra stock disponible y permite añadir productos desde la superficie completa de cada tarjeta (excepto controles secundarios) al carrito global. La pestaña `"Vender"` refleja las unidades en el badge de `Navbar` y muestra `CartSummaryBar` sobre la navegación inferior.
+* **Checkout:** `CheckoutModal` reutiliza `ModalSheet`, permite indicar cliente, ajustar cantidades dentro del stock real, retirar productos, editar el precio unitario, cambiar lote/proveedor, escoger `Efectivo`, `Nequi`, `Bancolombia` o `Tarjeta`, aplicar un descuento global y confirmar la venta. La confirmación vuelve a validar lotes y descuenta stock sin actualizaciones parciales.
 
 ### C. Flujo de Control de Inventario y Alta Inteligente (`InventoryView.tsx`)
 * **Modo Mostrador vs. Costos:** Al pulsar el icono de ojo en la cabecera, se alternan la visibilidad de los costos de compra y márgenes. Al pulsar sobre cualquier producto, se abre su detalle para ajustar existencias directamente por lote (`+`/`-`).

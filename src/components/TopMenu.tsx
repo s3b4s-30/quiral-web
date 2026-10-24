@@ -18,35 +18,67 @@ export default function TopMenu({
   onLogout,
 }: TopMenuProps) {
   const [open, setOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const { suppliers } = useInventory();
 
+  const handleDismissBackdrop = (e: React.SyntheticEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setOpen(false);
+  };
+
   useEffect(() => {
-    const closeOnOutsideClick = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+    if (!open) return;
+    const closeOnOutsideClick = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node;
+      if (
+        popoverRef.current &&
+        !popoverRef.current.contains(target) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(target)
+      ) {
+        event.stopPropagation();
         setOpen(false);
       }
     };
     document.addEventListener("mousedown", closeOnOutsideClick);
-    return () => document.removeEventListener("mousedown", closeOnOutsideClick);
-  }, []);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideClick);
+    };
+  }, [open]);
 
   return (
-    <div className="theme-menu relative" ref={menuRef}>
+    <div className="theme-menu relative">
       <button
+        ref={buttonRef}
         type="button"
         aria-label="Abrir configuración y menú"
         title="Configuración"
         aria-expanded={open}
         aria-controls="top-menu-popover"
         onClick={() => setOpen((isOpen) => !isOpen)}
-        className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border-color)] bg-[var(--bg-elevated)] text-[#007aff] shadow-sm transition-colors duration-75 hover:opacity-80 active:scale-95 dark:text-[#0a84ff]"
+        className="relative z-50 flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border-color)] bg-[var(--bg-elevated)] text-[#007aff] shadow-sm transition-colors duration-75 hover:opacity-80 active:scale-95 dark:text-[#0a84ff]"
       >
         {open ? <X size={20} /> : <MoreHorizontal size={20} />}
       </button>
 
       {open && (
-        <div id="top-menu-popover" role="menu" className="absolute right-0 top-12 z-50 w-72 origin-top-right rounded-3xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-4 shadow-2xl shadow-black/25 backdrop-blur-md animate-in fade-in zoom-in-95 duration-150">
+        <>
+          <button
+            type="button"
+            aria-label="Cerrar menú de configuración"
+            className="fixed inset-0 z-40 h-full w-full cursor-default bg-black/40 backdrop-blur-[2px] touch-none"
+            onClick={handleDismissBackdrop}
+            onTouchEnd={handleDismissBackdrop}
+            onMouseDown={handleDismissBackdrop}
+          />
+          <div
+            ref={popoverRef}
+            id="top-menu-popover"
+            role="menu"
+            className="absolute right-0 top-12 z-50 w-72 origin-top-right rounded-3xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-4 shadow-2xl shadow-black/25 backdrop-blur-md animate-in fade-in zoom-in-95 duration-150"
+          >
           <div className="mb-3">
             <h3 className="text-base font-bold text-[var(--text-primary)] transition-colors duration-75">Configuración</h3>
             <div className="mt-1 flex items-center gap-2 text-xs text-[var(--text-secondary)]">
@@ -139,7 +171,8 @@ export default function TopMenu({
           <p className="mt-3 text-center text-[11px] font-medium text-[var(--text-secondary)]/70 transition-none">
             Quiral · by Elytra
           </p>
-        </div>
+          </div>
+        </>
       )}
     </div>
   );

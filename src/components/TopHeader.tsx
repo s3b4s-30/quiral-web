@@ -4,6 +4,8 @@ import { useInventory } from "../context/InventoryContext";
 import { Tab } from "./Navbar";
 import TopMenu, { Theme } from "./TopMenu";
 
+export type HeaderVariant = "default" | "accent";
+
 interface TopHeaderProps {
   activeTab: Tab;
   onTabChange: (tab: Tab) => void;
@@ -11,6 +13,7 @@ interface TopHeaderProps {
   onThemeChange: (theme: Theme) => void;
   onOpenSuppliers: () => void;
   onLogout: () => void;
+  variant?: HeaderVariant;
 }
 
 const TAB_TITLES: Record<Tab, string> = {
@@ -23,11 +26,14 @@ const TAB_TITLES: Record<Tab, string> = {
 /**
  * TopHeader — Cabecera Fija Nativa Superior (Apple HIG)
  * 
- * Correcciones aplicadas:
+ * Características:
  * 1. Espaciado superior estricto: sin márgenes redundantes ni artificios de padding fijo.
- * 2. Título «Inventario» en flexbox con flex-1 y truncate para nunca colisionar con acciones.
- * 3. Modo Administrador unificado mediante AdminCompactButton: adaptable a cualquier ancho.
- * 4. Distribución predecible con gap consistente y controles de tamaño táctil accesible.
+ * 2. Fondo 100% sólido HIG consistente con el fondo nativo de la aplicación.
+ * 3. Título en flexbox con flex-1 y truncate para nunca colisionar con acciones.
+ * 4. Diferenciación visual exclusiva mediante prop `variant`:
+ *    - "accent": título y borde inferior en acento azul (blue-500 / #007aff).
+ *    - "default": título y borde en paleta nativa estándar.
+ * 5. Reutilizable y escalable para las 4 pestañas (Resumen, Vender, Inventario, Historial).
  */
 export default function TopHeader({
   activeTab,
@@ -36,13 +42,19 @@ export default function TopHeader({
   onThemeChange,
   onOpenSuppliers,
   onLogout,
+  variant = "default",
 }: TopHeaderProps) {
   const { setIsNewProductModalOpen, setIsPurgeModalOpen } = useInventory();
 
   const title = TAB_TITLES[activeTab] || "Quiral";
+  const isAccent = variant === "accent";
 
   return (
-    <header className="quiral-top-header select-none transition-colors duration-75">
+    <header
+      className={`quiral-top-header select-none transition-colors duration-75 ${
+        isAccent ? "border-b !border-blue-500/20 dark:!border-blue-500/30" : ""
+      }`}
+    >
       <div className="mx-auto flex max-w-xl items-center justify-between gap-3">
         {/* Título: flexible con truncamiento para nunca empujar los controles */}
         <button
@@ -51,7 +63,13 @@ export default function TopHeader({
           className="min-w-0 flex-1 text-left"
           aria-label={`Volver al inicio de ${title}`}
         >
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--text-primary)] truncate transition-colors duration-75">
+          <h1
+            className={`text-2xl sm:text-3xl font-extrabold tracking-tight truncate transition-colors duration-75 ${
+              isAccent
+                ? "text-blue-500 dark:text-blue-400"
+                : "text-[var(--text-primary)]"
+            }`}
+          >
             {title}
           </h1>
         </button>
@@ -74,7 +92,7 @@ export default function TopHeader({
                 <Trash2 size={16} />
               </button>
 
-              {/* Botón: Crear nuevo producto */}
+              {/* Botón: Crear nuevo producto con acento azul primario estándar */}
               <button
                 type="button"
                 onClick={() => setIsNewProductModalOpen(true)}

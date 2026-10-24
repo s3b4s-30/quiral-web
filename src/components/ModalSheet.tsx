@@ -3,6 +3,7 @@ import { ChevronLeft } from "lucide-react";
 
 export interface ModalSheetProps {
   onClose: () => void;
+  onStartClose?: () => void;
   title: string;
   headerLeft?: React.ReactNode;
   headerRight?: React.ReactNode;
@@ -16,6 +17,7 @@ export interface ModalSheetProps {
 
 export default function ModalSheet({
   onClose,
+  onStartClose,
   title,
   headerLeft,
   headerRight,
@@ -35,13 +37,14 @@ export default function ModalSheet({
   const startTimeRef = useRef(0);
   const isDraggingRef = useRef(false);
 
-  // Cerrar con animación fluida
+  // Cerrar con animación fluida (máximo 180ms ease-out, sincronizando restauración de interfaz)
   const handleClose = () => {
     if (isClosing) return;
     setIsClosing(true);
+    onStartClose?.();
     setTimeout(() => {
       onClose();
-    }, 200);
+    }, 180);
   };
 
   // Bloqueo de scroll del body y restauración limpia al desmontar
@@ -154,7 +157,7 @@ export default function ModalSheet({
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex flex-col justify-end bg-black/60 backdrop-blur-sm sm:items-center sm:justify-center p-0 sm:p-4 transition-opacity duration-200 ${
+      className={`fixed inset-0 z-50 flex flex-col justify-end bg-black/60 backdrop-blur-sm sm:items-center sm:justify-center p-0 sm:p-4 transition-opacity duration-[180ms] ease-out ${
         isClosing ? "opacity-0" : "opacity-100 animate-in fade-in"
       }`}
       onClick={(e) => {
@@ -177,7 +180,7 @@ export default function ModalSheet({
           transition: isDragging
             ? "none"
             : isClosing
-            ? "transform 0.22s cubic-bezier(0.32, 0.72, 0, 1)"
+            ? "transform 0.18s cubic-bezier(0.32, 0.72, 0, 1)"
             : "transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)",
         }}
         onClick={(e) => e.stopPropagation()}

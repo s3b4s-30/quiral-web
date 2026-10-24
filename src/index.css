@@ -76,6 +76,13 @@ a {
   font-variant-numeric: tabular-nums;
 }
 
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
 /* Ocultar barra de desplazamiento sin perder funcionalidad de scroll táctil */
 .no-scrollbar::-webkit-scrollbar {
   display: none;

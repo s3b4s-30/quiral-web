@@ -15,6 +15,7 @@ interface AdminCompactButtonProps {
  *    y como píldora con texto completo en pantallas mayores, evitando desbordamientos.
  * 3. Accesibilidad: aria-label y title explícitos para lectores de pantalla.
  * 4. Flexbox nativo: sin posicionamientos absolutos ni colisiones de capas.
+ * 5. Consistencia global: acento azul nativo estándar en toda la aplicación.
  */
 export default function AdminCompactButton({ className = "" }: AdminCompactButtonProps) {
   const { showCosts, setShowCosts } = useInventory();

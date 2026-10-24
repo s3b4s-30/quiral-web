@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { Batch, Product, Supplier } from "../types/domain";
+import { Batch, CartItem, PaymentMethod, Product, Sale, SaleItem, Supplier } from "../types/domain";
 
 export const SUPPLIER_PALETTE = [
   "#007AFF", // Azul
@@ -61,9 +61,61 @@ const INITIAL_PRODUCTS: Product[] = [
   },
 ];
 
+const INITIAL_SALES: Sale[] = [
+  {
+    id: "sale-93",
+    saleNumber: 93,
+    customerName: "Santiago Restrepo",
+    note: "Combo carga rápida con descuento de $5.000",
+    paymentMethod: "Nequi",
+    createdAt: "2026-10-18T16:30:00-05:00",
+    totalAmount: 75000,
+    items: [
+      {
+        id: "item-93-1",
+        productId: "prod-anker-30w",
+        productName: "Cubo Anker 30W",
+        qty: 1,
+        unitPrice: 50000,
+        warrantyDays: 30,
+        warrantyClaimed: false,
+      },
+      {
+        id: "item-93-2",
+        productId: "prod-iphone-20w",
+        productName: "Cubo iPhone 20W",
+        qty: 1,
+        unitPrice: 25000,
+        warrantyDays: 15,
+        warrantyClaimed: false,
+      },
+    ],
+  },
+  {
+    id: "sale-92",
+    saleNumber: 92,
+    customerName: "Cliente General",
+    paymentMethod: "Efectivo",
+    createdAt: "2026-10-15T11:20:00-05:00",
+    totalAmount: 100000,
+    items: [
+      {
+        id: "item-92-1",
+        productId: "prod-anker-30w",
+        productName: "Cubo Anker 30W",
+        qty: 2,
+        unitPrice: 50000,
+        warrantyDays: 30,
+        warrantyClaimed: false,
+      },
+    ],
+  },
+];
+
 interface InventoryContextType {
   suppliers: Supplier[];
   products: Product[];
+  sales: Sale[];
   showCosts: boolean;
   setShowCosts: React.Dispatch<React.SetStateAction<boolean>>;
   selectedProduct: Product | null;
@@ -72,6 +124,18 @@ interface InventoryContextType {
   setIsNewProductModalOpen: (open: boolean) => void;
   isPurgeModalOpen: boolean;
   setIsPurgeModalOpen: (open: boolean) => void;
+  lastSelectedSupplierId: string | null;
+  setLastSelectedSupplierId: (id: string | null) => void;
+  cart: CartItem[];
+  cartUnits: number;
+  addToCart: (productId: string) => boolean;
+  updateCartQuantity: (productId: string, quantity: number) => void;
+  updateCartItemPrice: (productId: string, unitPrice: number) => void;
+  updateCartItemBatch: (productId: string, batchId: string) => void;
+  removeFromCart: (productId: string) => void;
+  clearCart: () => void;
+  completeSale: (paymentMethod: PaymentMethod, total: number, customerName?: string) => boolean;
+  toggleItemWarranty: (saleId: string, itemId: string, note?: string) => void;
   addSupplier: (supplier: Omit<Supplier, "id">) => Supplier;
   updateSupplier: (supplier: Supplier) => void;
   deleteSupplier: (id: string) => void;
@@ -145,6 +209,23 @@ function isProductList(value: unknown): value is Product[] {
   });
 }
 
+function isSale(value: unknown): value is Sale {
+  if (typeof value !== "object" || value === null) return false;
+  const s = value as Record<string, unknown>;
+  return (
+    typeof s.id === "string" &&
+    typeof s.saleNumber === "number" &&
+    typeof s.customerName === "string" &&
+    typeof s.totalAmount === "number" &&
+    typeof s.createdAt === "string" &&
+    Array.isArray(s.items)
+  );
+}
+
+function isSaleList(value: unknown): value is Sale[] {
+  return Array.isArray(value) && value.every(isSale);
+}
+
 function writeStored(key: string, value: unknown) {
   try {
     localStorage.setItem(key, JSON.stringify(value));
@@ -162,6 +243,10 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
     readStored("quiral_products", INITIAL_PRODUCTS, isProductList)
   );
 
+  const [sales, setSales] = useState<Sale[]>(() =>
+    readStored("quiral_sales", INITIAL_SALES, isSaleList)
+  );
+
   // Modo Mostrador vs Costos
   const [showCosts, setShowCosts] = useState(false);
 
@@ -169,6 +254,15 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isNewProductModalOpen, setIsNewProductModalOpen] = useState(false);
   const [isPurgeModalOpen, setIsPurgeModalOpen] = useState(false);
+  const [lastSelectedSupplierId, setLastSelectedSupplierId] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem("quiral-last-supplier-id");
+    } catch {
+      return null;
+    }
+  });
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const cartUnits = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   useEffect(() => {
     writeStored("quiral_suppliers", suppliers);
@@ -177,6 +271,10 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     writeStored("quiral_products", products);
   }, [products]);
+
+  useEffect(() => {
+    writeStored("quiral_sales", sales);
+  }, [sales]);
 
   const addSupplier = (supData: Omit<Supplier, "id">): Supplier => {
     const newSup: Supplier = {
@@ -326,11 +424,177 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
     return purgedCount;
   };
 
+  const addToCart = (productId: string): boolean => {
+    const product = products.find((item) => item.id === productId);
+    if (!product) return false;
+    const existing = cart.find((item) => item.productId === productId);
+    const availableBatches = product.batches.filter((item) => item.stock > 0);
+    if (availableBatches.length === 0) return false;
+
+    // Priorizar lote del último proveedor seleccionado si tiene stock
+    const preferredBatch = lastSelectedSupplierId
+      ? availableBatches.find((item) => item.supplierId === lastSelectedSupplierId)
+      : undefined;
+
+    const batch = preferredBatch || [...availableBatches].sort((a, b) => b.stock - a.stock)[0];
+    if (!batch) return false;
+    if (existing) {
+      const activeBatch = product.batches.find((item) => item.id === existing.batchId);
+      if (!activeBatch || existing.quantity >= activeBatch.stock) return false;
+      setCart((current) =>
+        current.map((item) =>
+          item.productId === productId ? { ...item, quantity: item.quantity + 1 } : item
+        )
+      );
+      return true;
+    }
+    setCart((current) => [
+      ...current,
+      { productId, batchId: batch.id, quantity: 1, unitPrice: product.price },
+    ]);
+    return true;
+  };
+
+  const updateCartQuantity = (productId: string, quantity: number) => {
+    const item = cart.find((entry) => entry.productId === productId);
+    const product = products.find((entry) => entry.id === productId);
+    if (!item || !product) return;
+    const batch = product.batches.find((entry) => entry.id === item.batchId);
+    const nextQuantity = Math.min(Math.max(0, Math.floor(quantity)), batch?.stock ?? 0);
+    if (nextQuantity === 0) {
+      setCart((current) => current.filter((entry) => entry.productId !== productId));
+      return;
+    }
+    setCart((current) =>
+      current.map((entry) =>
+        entry.productId === productId ? { ...entry, quantity: nextQuantity } : entry
+      )
+    );
+  };
+
+  const removeFromCart = (productId: string) => {
+    setCart((current) => current.filter((item) => item.productId !== productId));
+  };
+
+  const updateCartItemPrice = (productId: string, unitPrice: number) => {
+    if (!Number.isFinite(unitPrice) || unitPrice < 0) return;
+    setCart((current) =>
+      current.map((item) =>
+        item.productId === productId
+          ? { ...item, unitPrice: Math.round(unitPrice) }
+          : item
+      )
+    );
+  };
+
+  const updateCartItemBatch = (productId: string, batchId: string) => {
+    const product = products.find((entry) => entry.id === productId);
+    const item = cart.find((entry) => entry.productId === productId);
+    const batch = product?.batches.find((entry) => entry.id === batchId);
+    if (!product || !item || !batch || batch.stock <= 0) return;
+
+    // Persistir el proveedor seleccionado para futuros agregados
+    setLastSelectedSupplierId(batch.supplierId);
+    try {
+      localStorage.setItem("quiral-last-supplier-id", batch.supplierId);
+    } catch {
+      // Ignorar error de cuota o modo privado
+    }
+
+    setCart((current) =>
+      current.map((entry) =>
+        entry.productId === productId
+          ? { ...entry, batchId, quantity: Math.min(entry.quantity, batch.stock) }
+          : entry
+      )
+    );
+  };
+
+  const clearCart = () => setCart([]);
+
+  const completeSale = (
+    paymentMethod: PaymentMethod,
+    total: number,
+    customerName?: string
+  ): boolean => {
+    const subtotal = cart.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+    if (!cart.length || !Number.isFinite(total) || total < 0 || total > subtotal) return false;
+    const updatedProducts = products.map((product) => {
+      const item = cart.find((entry) => entry.productId === product.id);
+      if (!item) return product;
+      const batch = product.batches.find((entry) => entry.id === item.batchId);
+      if (!batch || batch.stock < item.quantity) return null;
+      return {
+        ...product,
+        batches: product.batches.map((entry) =>
+          entry.id === item.batchId ? { ...entry, stock: entry.stock - item.quantity } : entry
+        ),
+      };
+    });
+    if (updatedProducts.some((product) => product === null)) return false;
+    const productsToSave = updatedProducts.filter(
+      (product): product is Product => product !== null,
+    );
+
+    // Registrar venta en historial
+    const newSaleItems: SaleItem[] = cart.map((cartItem) => {
+      const prod = products.find((p) => p.id === cartItem.productId);
+      return {
+        id: "item-" + Date.now() + "-" + Math.random().toString(36).substring(2, 6),
+        productId: cartItem.productId,
+        productName: prod?.name || "Producto",
+        qty: cartItem.quantity,
+        unitPrice: cartItem.unitPrice,
+        batchId: cartItem.batchId,
+        warrantyDays: prod?.warrantyDays || 15,
+        warrantyClaimed: false,
+      };
+    });
+
+    const nextSaleNumber = (sales[0]?.saleNumber || 90) + 1;
+    const newSale: Sale = {
+      id: "sale-" + Date.now(),
+      saleNumber: nextSaleNumber,
+      customerName: customerName?.trim() || "Cliente General",
+      paymentMethod,
+      totalAmount: total,
+      createdAt: new Date().toISOString(),
+      items: newSaleItems,
+    };
+
+    setSales((prev) => [newSale, ...prev]);
+    setProducts(productsToSave);
+    setCart([]);
+    console.info(`Venta #${nextSaleNumber} completada con método ${paymentMethod}.`);
+    return true;
+  };
+
+  const toggleItemWarranty = (saleId: string, itemId: string, note?: string) => {
+    setSales((prev) =>
+      prev.map((sale) => {
+        if (sale.id !== saleId) return sale;
+        return {
+          ...sale,
+          items: sale.items.map((item) => {
+            if (item.id !== itemId) return item;
+            return {
+              ...item,
+              warrantyClaimed: !item.warrantyClaimed,
+              warrantyClaimNote: note !== undefined ? note : item.warrantyClaimNote,
+            };
+          }),
+        };
+      })
+    );
+  };
+
   return (
     <InventoryContext.Provider
       value={{
         suppliers,
         products,
+        sales,
+        toggleItemWarranty,
         showCosts,
         setShowCosts,
         selectedProduct,
@@ -339,6 +603,17 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         setIsNewProductModalOpen,
         isPurgeModalOpen,
         setIsPurgeModalOpen,
+        lastSelectedSupplierId,
+        setLastSelectedSupplierId,
+        cart,
+        cartUnits,
+        addToCart,
+        updateCartQuantity,
+        updateCartItemPrice,
+        updateCartItemBatch,
+        removeFromCart,
+        clearCart,
+        completeSale,
         addSupplier,
         updateSupplier,
         deleteSupplier,

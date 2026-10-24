@@ -1,4 +1,4 @@
-import { Minus, Plus, Trash2 } from "lucide-react";
+import { Eye, EyeOff, Minus, Plus, Trash2 } from "lucide-react";
 import React, { useState } from "react";
 import ModalSheet from "./ModalSheet";
 import { useInventory } from "../context/InventoryContext";
@@ -9,6 +9,7 @@ interface ProductDetailModalProps {
   product: Product;
   showCosts: boolean;
   onClose: () => void;
+  onStartClose?: () => void;
   onOpenSuppliers: () => void;
 }
 
@@ -31,6 +32,7 @@ export default function ProductDetailModal({
   product,
   showCosts,
   onClose,
+  onStartClose,
   onOpenSuppliers,
 }: ProductDetailModalProps) {
   const {
@@ -43,6 +45,9 @@ export default function ProductDetailModal({
     addBatchToProduct,
     deleteProduct,
   } = useInventory();
+
+  // Control local de visibilidad de costos para atender al cliente en mostrador
+  const [isCostVisible, setIsCostVisible] = useState(showCosts);
 
   // Obtener la instancia en tiempo real del producto desde el contexto
   const currentProduct = products.find((p) => p.id === product.id) || product;
@@ -98,6 +103,7 @@ export default function ProductDetailModal({
   return (
     <ModalSheet
       onClose={onClose}
+      onStartClose={onStartClose}
       title="Detalle de producto"
       // Botón de acción principal fijo en el footer inferior (ajustado ergonómicamente al borde)
       footer={
@@ -188,9 +194,21 @@ export default function ProductDetailModal({
         {/* Sección Lotes por Proveedor */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
-              Lotes por Proveedor
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+                Lotes por Proveedor
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsCostVisible((v) => !v)}
+                className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/10 transition-colors duration-75"
+                title={isCostVisible ? "Ocultar costos" : "Mostrar costos"}
+                aria-label={isCostVisible ? "Ocultar costos" : "Mostrar costos"}
+              >
+                {isCostVisible ? <EyeOff size={13} /> : <Eye size={13} />}
+                <span>{isCostVisible ? "Ocultar" : "Costos"}</span>
+              </button>
+            </div>
             <button
               type="button"
               onClick={() => setIsAddingBatch((prev) => !prev)}
@@ -280,7 +298,7 @@ export default function ProductDetailModal({
                       <p className="text-sm font-bold text-[var(--text-primary)]">
                         {sup?.name || "Proveedor desconocido"}
                       </p>
-                      {showCosts && (
+                      {isCostVisible && (
                         <p className="tabular-nums text-xs text-[var(--text-secondary)]">
                           Costo unitario: {formatCOP(batch.cost)}
                         </p>

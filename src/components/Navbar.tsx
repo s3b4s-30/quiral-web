@@ -27,7 +27,7 @@ export default function Navbar({
 
   return (
     <nav
-      className={`fixed z-40 transition-colors duration-75 select-none ${
+      className={`fixed z-30 transition-colors duration-75 select-none ${
         isFloating
           ? "liquid-glass-surface inset-x-4 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] mx-auto max-w-md rounded-3xl p-1.5"
           : "liquid-glass-surface inset-x-0 bottom-0 w-full border-t px-3 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))]"
@@ -36,6 +36,7 @@ export default function Navbar({
       <div className={`grid grid-cols-4 gap-1 ${isFloating ? "" : "mx-auto max-w-md"}`}>
         {tabs.map(({ id, label, icon: Icon }) => {
           const isActive = activeTab === id;
+
           return (
             <button
               key={id}
@@ -44,7 +45,7 @@ export default function Navbar({
               onClick={() => onTabChange(id)}
               className={`relative flex min-h-[50px] flex-col items-center justify-center gap-1 rounded-2xl px-2 py-1.5 text-xs font-semibold transition-colors duration-75 active:scale-95 ${
                 isActive
-                  ? "bg-[#007aff] text-white shadow-sm dark:bg-[var(--bg-elevated)] dark:text-[#0a84ff] dark:border dark:border-[var(--border-color)] dark:shadow-md"
+                  ? "bg-[#007aff] text-white shadow-sm dark:bg-[var(--bg-elevated)] dark:text-[#0a84ff] dark:border dark:border-blue-500/30 dark:shadow-md"
                   : "text-[var(--text-secondary)] hover:bg-black/5 dark:hover:bg-white/5"
               }`}
             >

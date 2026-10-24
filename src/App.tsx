@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import FloatingCartFAB from "./components/FloatingCartFAB";
 import Navbar, { type NavbarVariant, type Tab } from "./components/Navbar";
 import NewProductModal from "./components/NewProductModal";
 import ProductDetailModal from "./components/ProductDetailModal";
@@ -7,7 +8,9 @@ import SuppliersModal from "./components/SuppliersModal";
 import TopHeader from "./components/TopHeader";
 import { type Theme } from "./components/TopMenu";
 import { InventoryProvider, useInventory } from "./context/InventoryContext";
+import HistoryView from "./views/HistoryView";
 import InventoryView from "./views/InventoryView";
+import PosView from "./views/PosView";
 
 function getInitialTheme(): Theme {
   let stored: string | null = null;
@@ -24,6 +27,8 @@ function AppInner() {
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
   const [navbarVariant] = useState<NavbarVariant>("floating");
   const [isSuppliersModalOpen, setIsSuppliersModalOpen] = useState(false);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [isModalClosing, setIsModalClosing] = useState(false);
 
   const {
     selectedProduct,
@@ -33,20 +38,27 @@ function AppInner() {
     setIsNewProductModalOpen,
     isPurgeModalOpen,
     setIsPurgeModalOpen,
+    cartUnits,
   } = useInventory();
 
   // Ocultar Navbar cuando cualquier modal o vista secundaria esté activa
+  // Se restaura inmediatamente al iniciar la animación de cierre (<=180ms ease-out)
   const hasActiveModal = Boolean(
-    selectedProduct || isNewProductModalOpen || isPurgeModalOpen || isSuppliersModalOpen
+    (selectedProduct || isNewProductModalOpen || isPurgeModalOpen || isSuppliersModalOpen || isCheckoutOpen)
+    && !isModalClosing
   );
 
   const handleTabChange = (tab: Tab) => {
     setActiveTab(tab);
-    if (tab === "inventory") {
-      requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      if (tab === "inventory") {
         document.getElementById("inventory-scroll")?.scrollTo({ top: 0, behavior: "smooth" });
-      });
-    }
+      } else if (tab === "sell") {
+        document.getElementById("pos-scroll")?.scrollTo({ top: 0, behavior: "smooth" });
+      } else if (tab === "history") {
+        document.getElementById("history-scroll")?.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    });
   };
 
   useEffect(() => {
@@ -79,9 +91,10 @@ function AppInner() {
 
   return (
     <div className="h-full w-full overflow-hidden bg-[var(--bg-primary)] text-[var(--text-primary)] relative">
-      {/* Cabecera Fija Nativa Superior (100% sólida, sin blur, estática) */}
+      {/* Cabecera Fija Nativa Superior (100% sólida, sin blur, estática, con diferenciador por props) */}
       <TopHeader
         activeTab={activeTab}
+        variant="accent"
         onTabChange={handleTabChange}
         theme={theme}
         onThemeChange={setTheme}
@@ -93,8 +106,12 @@ function AppInner() {
       <main className="h-full w-full overflow-hidden relative">
         {activeTab === "inventory" ? (
           <InventoryView onOpenSuppliers={() => setIsSuppliersModalOpen(true)} />
+        ) : activeTab === "sell" ? (
+          <PosView onCheckoutStateChange={setIsCheckoutOpen} />
+        ) : activeTab === "history" ? (
+          <HistoryView onGoToPOS={() => handleTabChange("sell")} />
         ) : (
-          <div className="quiral-scroll-container px-4 text-center text-[var(--text-secondary)]">
+          <div className="quiral-scroll-container px-4 pb-24 text-center text-[var(--text-secondary)]">
             <p className="text-base font-semibold pt-12">Esta sección estará disponible próximamente.</p>
             <button
               type="button"
@@ -107,6 +124,14 @@ function AppInner() {
         )}
       </main>
 
+      {/* Botón flotante de acceso rápido a Vender en todas las pantallas distintas a Vender */}
+      {!hasActiveModal && activeTab !== "sell" && (
+        <FloatingCartFAB
+          cartCount={cartUnits}
+          onClick={() => handleTabChange("sell")}
+        />
+      )}
+
       {/* 
         Barra de Navegación Inferior Flotante:
         Se oculta dinámicamente cuando un modal está abierto para evitar solapamientos.
@@ -114,7 +139,7 @@ function AppInner() {
       {!hasActiveModal && (
         <Navbar
           activeTab={activeTab}
-          cartCount={0}
+          cartCount={cartUnits}
           onTabChange={handleTabChange}
           variant={navbarVariant}
         />
@@ -128,24 +153,42 @@ function AppInner() {
         <ProductDetailModal
           product={selectedProduct}
           showCosts={showCosts}
-          onClose={() => setSelectedProduct(null)}
+          onStartClose={() => setIsModalClosing(true)}
+          onClose={() => {
+            setSelectedProduct(null);
+            setIsModalClosing(false);
+          }}
           onOpenSuppliers={() => setIsSuppliersModalOpen(true)}
         />
       )}
 
       {isNewProductModalOpen && (
         <NewProductModal
-          onClose={() => setIsNewProductModalOpen(false)}
+          onStartClose={() => setIsModalClosing(true)}
+          onClose={() => {
+            setIsNewProductModalOpen(false);
+            setIsModalClosing(false);
+          }}
           onOpenSuppliers={() => setIsSuppliersModalOpen(true)}
         />
       )}
 
       {isPurgeModalOpen && (
-        <PurgeConfirmModal onClose={() => setIsPurgeModalOpen(false)} />
+        <PurgeConfirmModal
+          onClose={() => {
+            setIsPurgeModalOpen(false);
+            setIsModalClosing(false);
+          }}
+        />
       )}
 
       {isSuppliersModalOpen && (
-        <SuppliersModal onClose={() => setIsSuppliersModalOpen(false)} />
+        <SuppliersModal
+          onClose={() => {
+            setIsSuppliersModalOpen(false);
+            setIsModalClosing(false);
+          }}
+        />
       )}
     </div>
   );

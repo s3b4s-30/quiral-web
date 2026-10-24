@@ -1,5 +1,6 @@
 import { Search, X } from "lucide-react";
 import React, { useMemo, useState } from "react";
+import ProductCard from "../components/ProductCard";
 import { useInventory } from "../context/InventoryContext";
 import { ProductCategory } from "../types/domain";
 import { formatCOP } from "../utils/formatters";
@@ -67,10 +68,10 @@ export default function InventoryView({ onOpenSuppliers: _onOpenSuppliers }: Inv
     /* Contenedor Principal: Único elemento responsable del scroll vertical en la vista */
     <div id="inventory-scroll" className="quiral-scroll-container transition-colors duration-75">
       <div className="mx-auto max-w-xl px-4">
-        {/* 1. Buscador de Ancho Completo */}
-        <div className="inventory-sticky-controls mb-4">
+        {/* 1. Buscador de Ancho Completo con efecto liquid glass */}
+        <div className="sticky top-0 z-20 -mx-4 px-4 pt-1 pb-2 mb-4 bg-white/85 dark:bg-black/85 backdrop-blur-md border-b border-zinc-100 dark:border-white/5 transition-colors duration-75">
           <div className="relative mb-3">
-            <div className="flex min-h-12 items-center gap-2.5 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] px-3.5 shadow-sm transition-colors duration-75 focus-within:border-[#007aff]">
+            <div className="flex min-h-12 items-center gap-2.5 rounded-2xl border border-zinc-100 dark:border-white/5 bg-[var(--bg-elevated)] px-3.5 shadow-sm transition-colors duration-75 focus-within:border-[#007aff]">
               <Search size={18} className="text-[var(--text-secondary)] shrink-0" />
               <input
                 type="text"
@@ -104,7 +105,7 @@ export default function InventoryView({ onOpenSuppliers: _onOpenSuppliers }: Inv
                   className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-bold transition-colors duration-75 select-none ${
                     isActive
                       ? "bg-[#007aff] text-white shadow-sm"
-                      : "border border-[var(--border-color)] bg-[var(--bg-elevated)] text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/10"
+                      : "border border-zinc-100 dark:border-white/5 bg-[var(--bg-elevated)] text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/10"
                   }`}
                 >
                   {cat}
@@ -124,19 +125,19 @@ export default function InventoryView({ onOpenSuppliers: _onOpenSuppliers }: Inv
               </span>
             </div>
             <div className="mt-2.5 grid grid-cols-3 gap-2 text-center">
-              <div className="rounded-xl bg-[var(--bg-elevated)] p-2 border border-[var(--border-color)]">
+              <div className="rounded-xl bg-[var(--bg-elevated)] p-2 border border-zinc-100 dark:border-white/5">
                 <p className="text-[10px] font-medium text-[var(--text-secondary)]">Stock Total</p>
                 <p className="tabular-nums text-sm font-bold text-[var(--text-primary)] mt-0.5">
                   {inventoryStats.totalStock} uds
                 </p>
               </div>
-              <div className="rounded-xl bg-[var(--bg-elevated)] p-2 border border-[var(--border-color)]">
+              <div className="rounded-xl bg-[var(--bg-elevated)] p-2 border border-zinc-100 dark:border-white/5">
                 <p className="text-[10px] font-medium text-[var(--text-secondary)]">Inversión Costo</p>
                 <p className="tabular-nums text-sm font-bold text-[#ff9500] mt-0.5">
                   {formatCOP(inventoryStats.totalCost)}
                 </p>
               </div>
-              <div className="rounded-xl bg-[var(--bg-elevated)] p-2 border border-[var(--border-color)]">
+              <div className="rounded-xl bg-[var(--bg-elevated)] p-2 border border-zinc-100 dark:border-white/5">
                 <p className="text-[10px] font-medium text-[var(--text-secondary)]">Utilidad Potencial</p>
                 <p className="tabular-nums text-sm font-bold text-[#30d158] mt-0.5">
                   +{formatCOP(inventoryStats.potentialProfit)}
@@ -147,9 +148,9 @@ export default function InventoryView({ onOpenSuppliers: _onOpenSuppliers }: Inv
         )}
 
         {/* 4. Listado de Tarjetas de Productos */}
-        <section className="space-y-3">
+        <section className="space-y-3 pb-24">
           {filteredProducts.length === 0 ? (
-            <div className="rounded-3xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-10 text-center shadow-sm">
+            <div className="rounded-3xl border border-zinc-100 dark:border-white/5 bg-[var(--bg-elevated)] p-10 text-center shadow-sm">
               <p className="text-sm font-medium text-[var(--text-secondary)]">
                 No se encontraron productos que coincidan con la búsqueda o categoría.
               </p>
@@ -168,13 +169,8 @@ export default function InventoryView({ onOpenSuppliers: _onOpenSuppliers }: Inv
             filteredProducts.map((product) => {
               const totalStock = product.batches.reduce((sum, b) => sum + b.stock, 0);
 
-              const supplierColors = Array.from(
-                new Set(
-                  product.batches
-                    .filter((b) => b.stock > 0)
-                    .map((b) => getSupplier(b.supplierId)?.color)
-                    .filter(Boolean) as string[]
-                )
+              const supplierColors = new Map(
+                product.batches.map((b) => [b.supplierId, getSupplier(b.supplierId)?.color ?? "#007aff"])
               );
 
               const totalBatchCost = product.batches.reduce(
@@ -185,64 +181,16 @@ export default function InventoryView({ onOpenSuppliers: _onOpenSuppliers }: Inv
               const profitPerUnit = product.price - avgCost;
 
               return (
-                <article
+                <ProductCard
                   key={product.id}
-                  onClick={() => setSelectedProduct(product)}
-                  className="group relative cursor-pointer rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-4 shadow-sm transition-colors duration-75 hover:border-[#007aff]/40 active:scale-[0.99]"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <h2 className="text-base font-bold leading-tight text-[var(--text-primary)] transition-colors duration-75">
-                        {product.name}
-                      </h2>
-                      <p className="mt-1 text-xs font-medium text-[var(--text-secondary)] transition-colors duration-75">
-                        {product.subtitle || product.category}
-                      </p>
-                    </div>
-
-                    <div className="text-right shrink-0">
-                      <span className="tabular-nums text-xl font-extrabold text-[var(--text-primary)] transition-colors duration-75">
-                        {formatCOP(product.price)}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex items-center justify-between border-t border-[var(--border-color)]/60 pt-3">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`tabular-nums text-sm font-bold ${
-                          totalStock > 0 ? "text-[#30d158]" : "text-[#ff3b30]"
-                        }`}
-                      >
-                        {totalStock} uds
-                      </span>
-
-                      {supplierColors.length > 0 && (
-                        <div className="flex items-center gap-1.5 ml-1">
-                          {supplierColors.map((color, index) => (
-                            <span
-                              key={index}
-                              className="inline-block h-2.5 w-2.5 rounded-full shadow-sm ring-1 ring-white/20"
-                              style={{ backgroundColor: color }}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {showCosts && (
-                      <div className="text-right text-xs">
-                        <span className="text-[var(--text-secondary)]">Costo: </span>
-                        <span className="tabular-nums font-semibold text-[var(--text-primary)]">
-                          {formatCOP(avgCost)}
-                        </span>
-                        <span className="tabular-nums ml-2 font-bold text-[#30d158]">
-                          +{formatCOP(profitPerUnit)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </article>
+                  product={product}
+                  mode="inventory"
+                  onSelectProduct={setSelectedProduct}
+                  supplierColors={supplierColors}
+                  showCosts={showCosts}
+                  avgCost={avgCost}
+                  profitPerUnit={profitPerUnit}
+                />
               );
             })
           )}

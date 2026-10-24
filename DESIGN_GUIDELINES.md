@@ -40,6 +40,12 @@ Este documento define el sistema de diseño, la arquitectura de interfaz de usua
 - **Liquid Glass selectivo:** La `Navbar` flotante utiliza una superficie ultra translúcida (10% en claro, 14% en oscuro), saturación `1.8` y desenfoque `42px` porque no es una cabecera sobre contenido desplazable; las cabeceras de vistas permanecen sólidas para evitar artefactos de WebKit. Incluye fallback opaco cuando el navegador no soporta `backdrop-filter`.
 - **Controles de inventario persistentes:** El buscador y los filtros de categoría permanecen fijos bajo la cabecera durante el desplazamiento. `.quiral-scroll-container` reserva el espacio de la cabecera con `--quiral-header-offset`; `.inventory-sticky-controls` se adhiere a `top: 0` dentro de ese scrollport para no duplicar el offset.
 - **Retorno al inicio:** Seleccionar `Inventario` desde la Navbar inferior o pulsar su título en la cabecera devuelve el scroll de la vista al inicio con una transición breve.
+- **POS modular:** `PosView`, `CartSummaryBar` y `CheckoutModal` separan catálogo, resumen y cobro, mientras `InventoryContext` mantiene el carrito y la validación de stock como fuente única de verdad.
+- **Checkout POS:** El cobro permite editar el cliente, el precio unitario, la cantidad y el lote/proveedor desde `CheckoutModal`. Las mutaciones pasan por `InventoryContext`, que rechaza precios negativos y limita la cantidad al stock del lote seleccionado.
+- **Interacción rápida POS:** Las tarjetas con stock disponible son el único control interactivo de su superficie; el contador es un indicador visual no anidado. El total opcional se normaliza a dígitos antes de calcular el descuento y nunca puede superar el subtotal.
+- **Precios y selección POS:** El precio de cada tarjeta se muestra una sola vez en una línea sin salto. La tarjeta completa añade unidades y solo muestra un círculo contador cuando ya existe una selección. Los campos de total muestran siempre el formato COP visible (`$35.000`) aunque conserven un valor numérico interno.
+- **Resumen financiero compacto:** El bloque de checkout muestra únicamente el subtotal y un input para ajustar el total; la cifra final se presenta exclusivamente en el botón persistente `Completar venta`.
+- **Scrim de menús:** `TopMenu` renderiza un scrim fijo (`z-index` inferior a la tarjeta) que cubre la pantalla completa, incluida la Navbar. Tocar el scrim es la única acción fuera de la tarjeta necesaria para cerrar el menú.
 
 ---
 
@@ -61,6 +67,8 @@ Se registran los elementos, patrones y comportamientos eliminados o rechazados f
 | **Término informal "Cubito Cargador"** | Catálogo general | Jerga comercial inconsistente con la nomenclatura técnica. | Estandarizado a **"Cubo"** en toda la interfaz y datos. |
 | **Pestaña activa en negro sólido en modo claro** | `Navbar.tsx` | Rompía la jerarquía visual de iOS HIG, generando bajo contraste. | Fondo activo en azul de sistema `#007AFF` con texto e icono en blanco. |
 | **Animaciones declaradas sin implementación CSS** | `InventoryView.tsx`, `TopMenu.tsx`, `ModalSheet.tsx` | Las clases de animación no producían una transición consistente y no existía una alternativa global para usuarios con movimiento reducido. | Utilidades CSS locales de entrada y regla `prefers-reduced-motion` con fallback inmediato. |
+| **Variaciones de fondo por vista (`bg-zinc-50`, `dark:bg-zinc-950`) e índigo** | `InventoryView.tsx`, `App.tsx`, `Navbar.tsx` | Fragmentaba la identidad visual global y rompía la consistencia nativa dual OLED. | Unificación total del fondo nativo (`bg-[var(--bg-primary)]`) y acento azul (`blue-500`). Diferenciación concentrada exclusivamente en `TopHeader` mediante props. |
+| **Botón flotante de venta localizado en vistas hijas (`HistoryView.tsx`)** | `HistoryView.tsx` | `z-index` inferior al Navbar provocaba corte visual con la barra y falta de acceso rápido desde Inventario y Resumen. | Centralizado en layout raíz (`App.tsx`) con `FloatingCartFAB` (`z-40`, `bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))]`) activo en todas las vistas excepto Vender y oculto en modales. |
 
 ---
 
@@ -75,6 +83,7 @@ Se registran los elementos, patrones y comportamientos eliminados o rechazados f
 | **Cálculo dinámico puro de Safe Area sin mínimos forzados** | **Confirmada** | 2026-10-24 | Eliminado `max(..., 44px)` en `index.css` para erradicar espacios vacíos. |
 | **Balanceo de unidades por lote con criterio determinista** | **Confirmada** | 2026-10-24 | Implementado en `InventoryContext.tsx` (`adjustMasterStock`). |
 | **Padding reducido en footer de modales (`0.5rem` + safe-area)** | **Confirmada** | 2026-10-24 | Ajustado en `ModalSheet.tsx` para acercar el botón «Listo» al borde. |
+| **Diferenciación de vistas concentrada en `TopHeader` por props** | **Confirmada** | 2026-10-24 | Fondo nativo y acento azul unificados en toda la app; `TopHeader` recibe `variant="accent"` para modularidad escalable. |
 | **Migración de gestos a Framer Motion** | **Descartada** | 2026-10-24 | Descartada para evitar dependencias pesadas innecesarias; resuelto con eventos táctiles nativos. |
 | **Implementación de navegación por pestañas en Desktop** | **Pendiente** | 2026-10-24 | Se evaluará en la fase de optimización de escritorio para resoluciones > 768px. |
 
