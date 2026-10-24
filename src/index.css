@@ -1,0 +1,223 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  :root {
+    --bg-primary: #f2f2f7;
+    --bg-elevated: #ffffff;
+    --text-primary: #000000;
+    --text-secondary: #8e8e93;
+    --border-color: #e5e5ea;
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --quiral-header-offset: calc(env(safe-area-inset-top, 0px) + 4.25rem);
+  }
+
+  .dark {
+    --bg-primary: #000000;
+    --bg-elevated: #141416;
+    --text-primary: #ffffff;
+    --text-secondary: #8e8e93;
+    --border-color: #262629;
+  }
+
+  /* Bloqueo estricto del viewport global para erradicar el rebote de ventana en iOS Safari */
+  html,
+  body {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    overscroll-behavior: none;
+    -webkit-overscroll-behavior: none;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  #root {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: var(--bg-primary);
+  }
+}
+
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+button,
+a {
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Ocultar barra de desplazamiento sin perder funcionalidad de scroll táctil */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.liquid-glass-surface {
+  border: 1px solid var(--border-color);
+  background: var(--bg-elevated);
+  box-shadow:
+    0 20px 52px rgb(0 0 0 / 0.18),
+    inset 0 1px 0 rgb(255 255 255 / 0.34);
+  -webkit-backdrop-filter: blur(42px) saturate(1.8);
+  backdrop-filter: blur(42px) saturate(1.8);
+}
+
+.theme-menu,
+.theme-menu * {
+  transition: none !important;
+}
+
+/* Los cambios de tema son instantáneos en toda la interfaz. Las transiciones
+   de transform y opacity permanecen disponibles para feedback táctil y entradas. */
+.transition-colors {
+  transition-property: none !important;
+}
+
+@supports (background: color-mix(in srgb, white 50%, transparent)) {
+  .liquid-glass-surface {
+    border-color: color-mix(in srgb, var(--bg-elevated) 55%, var(--border-color));
+    background: color-mix(in srgb, var(--bg-primary) 10%, transparent);
+  }
+}
+
+.dark .liquid-glass-surface {
+  background: rgb(20 20 22 / 0.14);
+  border-color: rgb(255 255 255 / 0.12);
+  box-shadow:
+    0 20px 52px rgb(0 0 0 / 0.6),
+    inset 0 1px 0 rgb(255 255 255 / 0.12);
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .liquid-glass-surface {
+    background: var(--bg-elevated);
+  }
+}
+
+@keyframes quiral-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes quiral-zoom-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-in {
+  animation-duration: 150ms;
+  animation-fill-mode: both;
+  animation-timing-function: ease-out;
+}
+
+.fade-in {
+  animation-name: quiral-fade-in;
+}
+
+.zoom-in-95 {
+  animation-name: quiral-zoom-in;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+/* 
+  Cabecera fija superior para iOS Safari:
+  Ubicada en fixed top-0, 100% sólida (sin blur), con padding superior suficiente 
+  para descender el texto "Inventario" completamente por debajo de la zona de difuminado 
+  de la barra de estado de iOS (47px en iPhone 12 + espacio estético de 14px).
+*/
+/* 
+  Cabecera fija superior nativa (Apple HIG):
+  Fondo 100% sólido (sin blur), anclada a top-0 con cálculo limpio de área segura 
+  (env(safe-area-inset-top)) sin forzar mínimos artificiales que generen espacios vacíos.
+*/
+.quiral-top-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  height: var(--quiral-header-offset);
+  background-color: var(--bg-primary);
+  border-bottom: 1px solid var(--border-color);
+  padding-top: calc(env(safe-area-inset-top, 0px) + 0.625rem);
+  padding-bottom: 0.625rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* 
+  Contenedor de desplazamiento vertical exclusivo:
+  Comienza exactamente debajo de la cabecera fija y reserva el espacio inferior
+  para que el último elemento quede totalmente visible sobre la barra de navegación.
+*/
+.quiral-scroll-container {
+  height: 100%;
+  width: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  padding-top: var(--quiral-header-offset);
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 5.5rem);
+}
+
+.inventory-sticky-controls {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  margin-inline: -1rem;
+  padding: 0.25rem 1rem 0.25rem;
+  background-color: var(--bg-primary);
+}
