@@ -57,7 +57,7 @@ export default function TopHeader({
         isAccent ? "border-b !border-blue-500/20 dark:!border-blue-500/30" : ""
       }`}
     >
-      <div className="mx-auto flex max-w-xl items-center justify-between gap-3">
+      <div className="mx-auto flex max-w-xl md:max-w-4xl lg:max-w-5xl items-center justify-between gap-3">
         {/* Título: flexible con truncamiento para nunca empujar los controles */}
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <button

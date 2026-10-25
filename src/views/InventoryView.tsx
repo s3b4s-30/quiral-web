@@ -67,11 +67,11 @@ export default function InventoryView({ onOpenSuppliers: _onOpenSuppliers }: Inv
   return (
     /* Contenedor Principal: Único elemento responsable del scroll vertical en la vista */
     <div id="inventory-scroll" className="quiral-scroll-container transition-colors duration-75">
-      <div className="mx-auto max-w-xl px-4">
-        {/* 1. Buscador de Ancho Completo con efecto liquid glass */}
-        <div className="sticky top-0 z-20 -mx-4 px-4 pt-1 pb-2 mb-4 bg-white/85 dark:bg-black/85 backdrop-blur-md border-b border-zinc-100 dark:border-white/5 transition-colors duration-75">
+      <div className="mx-auto max-w-xl md:max-w-4xl lg:max-w-5xl px-4">
+        {/* 1. Buscador y Filtros Fijos con Fondo Sólido Opaco Nativo (Apple HIG) */}
+        <div className="sticky top-0 z-20 -mx-4 px-4 pt-1 pb-2.5 mb-4 bg-[var(--bg-primary)] border-b border-[var(--border-color)] transition-colors duration-75">
           <div className="relative mb-3">
-            <div className="flex min-h-12 items-center gap-2.5 rounded-2xl border border-zinc-100 dark:border-white/5 bg-[var(--bg-elevated)] px-3.5 shadow-sm transition-colors duration-75 focus-within:border-[#007aff]">
+            <div className="flex min-h-12 items-center gap-2.5 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] px-3.5 shadow-sm transition-colors duration-75 focus-within:border-[#007aff]">
               <Search size={18} className="text-[var(--text-secondary)] shrink-0" />
               <input
                 type="text"
@@ -105,7 +105,7 @@ export default function InventoryView({ onOpenSuppliers: _onOpenSuppliers }: Inv
                   className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-bold transition-colors duration-75 select-none ${
                     isActive
                       ? "bg-[#007aff] text-white shadow-sm"
-                      : "border border-zinc-100 dark:border-white/5 bg-[var(--bg-elevated)] text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/10"
+                      : "border border-[var(--border-color)] bg-[var(--bg-elevated)] text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/10"
                   }`}
                 >
                   {cat}
@@ -125,19 +125,19 @@ export default function InventoryView({ onOpenSuppliers: _onOpenSuppliers }: Inv
               </span>
             </div>
             <div className="mt-2.5 grid grid-cols-3 gap-2 text-center">
-              <div className="rounded-xl bg-[var(--bg-elevated)] p-2 border border-zinc-100 dark:border-white/5">
+              <div className="rounded-xl bg-[var(--bg-elevated)] p-2 border border-[var(--border-color)]">
                 <p className="text-[10px] font-medium text-[var(--text-secondary)]">Stock Total</p>
                 <p className="tabular-nums text-sm font-bold text-[var(--text-primary)] mt-0.5">
                   {inventoryStats.totalStock} uds
                 </p>
               </div>
-              <div className="rounded-xl bg-[var(--bg-elevated)] p-2 border border-zinc-100 dark:border-white/5">
+              <div className="rounded-xl bg-[var(--bg-elevated)] p-2 border border-[var(--border-color)]">
                 <p className="text-[10px] font-medium text-[var(--text-secondary)]">Inversión Costo</p>
                 <p className="tabular-nums text-sm font-bold text-[#ff9500] mt-0.5">
                   {formatCOP(inventoryStats.totalCost)}
                 </p>
               </div>
-              <div className="rounded-xl bg-[var(--bg-elevated)] p-2 border border-zinc-100 dark:border-white/5">
+              <div className="rounded-xl bg-[var(--bg-elevated)] p-2 border border-[var(--border-color)]">
                 <p className="text-[10px] font-medium text-[var(--text-secondary)]">Utilidad Potencial</p>
                 <p className="tabular-nums text-sm font-bold text-[#30d158] mt-0.5">
                   +{formatCOP(inventoryStats.potentialProfit)}
@@ -147,10 +147,10 @@ export default function InventoryView({ onOpenSuppliers: _onOpenSuppliers }: Inv
           </section>
         )}
 
-        {/* 4. Listado de Tarjetas de Productos */}
-        <section className="space-y-3 pb-24">
+        {/* 4. Listado de Tarjetas de Productos con Grilla Responsiva */}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-3 pb-24">
           {filteredProducts.length === 0 ? (
-            <div className="rounded-3xl border border-zinc-100 dark:border-white/5 bg-[var(--bg-elevated)] p-10 text-center shadow-sm">
+            <div className="col-span-full rounded-3xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-10 text-center shadow-sm">
               <p className="text-sm font-medium text-[var(--text-secondary)]">
                 No se encontraron productos que coincidan con la búsqueda o categoría.
               </p>

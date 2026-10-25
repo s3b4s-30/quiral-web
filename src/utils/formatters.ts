@@ -7,6 +7,55 @@ export function parseCOPInput(raw: string): number {
   return digits ? parseInt(digits, 10) : 0;
 }
 
+export function formatUnits(units: number): string {
+  return `${units} uds`;
+}
+
+export function formatProductCount(count: number): string {
+  return `${count} ${count === 1 ? "producto" : "productos"}`;
+}
+
+export function formatPercent(value: number): string {
+  return `${Math.round(value)}%`;
+}
+
+export function formatShortDate(dateInput: string | Date): string {
+  const date = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
+  if (isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("es-CO", {
+    day: "2-digit",
+    month: "short",
+  });
+}
+
+export function formatFullDate(dateInput: string | Date): string {
+  const date = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
+  if (isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("es-CO", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+export function formatDateWithTime(dateInput: string | Date): string {
+  const date = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
+  if (isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("es-CO", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+export function formatMonthYear(date: Date): string {
+  return date.toLocaleDateString("es-CO", {
+    month: "long",
+    year: "numeric",
+  });
+}
+
 export interface WarrantyStatus {
   status: "active" | "expired" | "claimed";
   label: string;
@@ -56,4 +105,3 @@ export function getWarrantyStatus(
     progressPct,
   };
 }
-

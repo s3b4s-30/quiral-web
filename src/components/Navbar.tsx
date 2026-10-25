@@ -27,7 +27,7 @@ export default function Navbar({
 
   return (
     <nav
-      className={`fixed z-30 transition-colors duration-75 select-none ${
+      className={`fixed z-30 transition-colors duration-75 select-none md:hidden ${
         isFloating
           ? "liquid-glass-surface inset-x-4 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] mx-auto max-w-md rounded-3xl p-1.5"
           : "liquid-glass-surface inset-x-0 bottom-0 w-full border-t px-3 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))]"

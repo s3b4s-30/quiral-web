@@ -1,7 +1,7 @@
 import { CheckCircle2, ChevronLeft, Flame, Repeat, ShoppingBag } from "lucide-react";
 import React, { useMemo, useState } from "react";
-import { Closure, Product, Sale } from "../types/domain";
-import { formatCOP } from "../utils/formatters";
+import { Closure, ClosureTopSellerTx, Product, Sale } from "../types/domain";
+import { formatCOP, formatShortDate } from "../utils/formatters";
 import ModalSheet from "./ModalSheet";
 
 interface SalesPerformanceModalProps {
@@ -20,13 +20,7 @@ interface ProductSellerStat {
   qty: number;
   revenue: number;
   profit: number;
-  tx: Array<{
-    id: string;
-    date: string;
-    customer: string;
-    qty: number;
-    price: number;
-  }>;
+  tx: ClosureTopSellerTx[];
 }
 
 interface ProductReturnedStat {
@@ -322,10 +316,7 @@ export default function SalesPerformanceModal({
                               className="flex items-center justify-between text-xs text-[var(--text-secondary)] py-0.5"
                             >
                               <span className="truncate pr-2">
-                                {new Date(t.date).toLocaleDateString("es-CO", {
-                                  day: "2-digit",
-                                  month: "short",
-                                })}{" "}
+                                {formatShortDate(t.date)}{" "}
                                 · {t.customer}
                               </span>
                               <span className="tabular-nums font-semibold text-[var(--text-primary)] shrink-0">

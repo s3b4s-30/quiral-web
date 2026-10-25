@@ -3,7 +3,7 @@ import React, { useMemo, useState } from "react";
 import CycleClosingModal from "../components/CycleClosingModal";
 import SalesPerformanceModal from "../components/SalesPerformanceModal";
 import { useInventory } from "../context/InventoryContext";
-import { formatCOP } from "../utils/formatters";
+import { formatCOP, formatFullDate } from "../utils/formatters";
 
 interface SummaryViewProps {
   onModalStateChange?: (open: boolean) => void;
@@ -69,35 +69,32 @@ export default function SummaryView({ onModalStateChange }: SummaryViewProps) {
       id="summary-scroll"
       className="quiral-scroll-container transition-colors duration-75"
     >
-      <div className="mx-auto max-w-xl px-4 pb-28">
-        {/* 1. Dashboard Principal de Métricas (KPI Cards - Referencia image_28.png) */}
-        <section className="space-y-3">
-          {/* Fila Superior: Ingresos y Utilidad */}
-          <div className="grid grid-cols-2 gap-3">
-            {/* Tarjeta Ingresos */}
-            <div className="rounded-2xl p-4 bg-zinc-50/80 dark:bg-zinc-900/90 border border-zinc-200/80 dark:border-white/5 shadow-sm transition-colors duration-75">
-              <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                Ingresos
-              </span>
-              <p className="tabular-nums text-2xl font-bold tracking-tight text-[var(--text-primary)] mt-1">
-                {formatCOP(totals.revenue)}
-              </p>
-            </div>
-
-            {/* Tarjeta Utilidad (Con modo privacidad ojito) */}
-            <div className="rounded-2xl p-4 bg-zinc-50/80 dark:bg-zinc-900/90 border border-zinc-200/80 dark:border-white/5 shadow-sm transition-colors duration-75">
-              <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                Utilidad
-              </span>
-              <p className="tabular-nums text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400 mt-1">
-                {!showCosts ? "••••••" : formatCOP(totals.profit)}
-              </p>
-            </div>
+      <div className="mx-auto max-w-xl md:max-w-4xl lg:max-w-5xl px-4 pb-28">
+        {/* 1. Dashboard Principal de Métricas (Tokens del Sistema Apple HIG) */}
+        <section className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {/* Tarjeta Ingresos */}
+          <div className="rounded-2xl p-4 bg-[var(--bg-elevated)] border border-[var(--border-color)] shadow-sm transition-colors duration-75">
+            <span className="text-xs font-medium text-[var(--text-secondary)]">
+              Ingresos
+            </span>
+            <p className="tabular-nums text-2xl font-bold tracking-tight text-[var(--text-primary)] mt-1">
+              {formatCOP(totals.revenue)}
+            </p>
           </div>
 
-          {/* Tarjeta Ancho Completo: Inventario (Valor total valorizado en ámbar) */}
-          <div className="rounded-2xl p-4 bg-zinc-50/80 dark:bg-zinc-900/90 border border-zinc-200/80 dark:border-white/5 shadow-sm transition-colors duration-75">
-            <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+          {/* Tarjeta Utilidad (Con modo privacidad ojito) */}
+          <div className="rounded-2xl p-4 bg-[var(--bg-elevated)] border border-[var(--border-color)] shadow-sm transition-colors duration-75">
+            <span className="text-xs font-medium text-[var(--text-secondary)]">
+              Utilidad
+            </span>
+            <p className="tabular-nums text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400 mt-1">
+              {!showCosts ? "••••••" : formatCOP(totals.profit)}
+            </p>
+          </div>
+
+          {/* Tarjeta Inventario */}
+          <div className="col-span-2 md:col-span-1 rounded-2xl p-4 bg-[var(--bg-elevated)] border border-[var(--border-color)] shadow-sm transition-colors duration-75">
+            <span className="text-xs font-medium text-[var(--text-secondary)]">
               Inventario
             </span>
             <p className="tabular-nums text-2xl font-bold tracking-tight text-amber-500 mt-1">
@@ -107,12 +104,12 @@ export default function SummaryView({ onModalStateChange }: SummaryViewProps) {
         </section>
 
         {/* 2. Tarjetas de Acción / Navegación (Estilo iOS Settings Row) */}
-        <section className="mt-4 space-y-2.5">
+        <section className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-2.5">
           {/* Botón 1: Más Vendidos y Devueltos */}
           <button
             type="button"
             onClick={handleOpenPerformance}
-            className="w-full rounded-2xl p-4 bg-[var(--bg-elevated)] border border-zinc-200/80 dark:border-white/5 shadow-sm flex items-center justify-between active:scale-[0.99] transition-transform text-left cursor-pointer select-none"
+            className="w-full rounded-2xl p-4 bg-[var(--bg-elevated)] border border-[var(--border-color)] shadow-sm flex items-center justify-between active:scale-[0.99] transition-transform text-left cursor-pointer select-none"
           >
             <div className="flex items-center gap-3 min-w-0 pr-2">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500">
@@ -127,14 +124,14 @@ export default function SummaryView({ onModalStateChange }: SummaryViewProps) {
                 </p>
               </div>
             </div>
-            <ChevronRight size={18} className="text-zinc-400 shrink-0" />
+            <ChevronRight size={18} className="text-[var(--text-secondary)] shrink-0" />
           </button>
 
           {/* Botón 2: Cerrar Ciclo */}
           <button
             type="button"
             onClick={handleOpenCycleClose}
-            className="w-full rounded-2xl p-4 bg-[var(--bg-elevated)] border border-zinc-200/80 dark:border-white/5 shadow-sm flex items-center justify-between active:scale-[0.99] transition-transform text-left cursor-pointer select-none"
+            className="w-full rounded-2xl p-4 bg-[var(--bg-elevated)] border border-[var(--border-color)] shadow-sm flex items-center justify-between active:scale-[0.99] transition-transform text-left cursor-pointer select-none"
           >
             <div className="flex items-center gap-3 min-w-0 pr-2">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500">
@@ -149,19 +146,19 @@ export default function SummaryView({ onModalStateChange }: SummaryViewProps) {
                 </p>
               </div>
             </div>
-            <ChevronRight size={18} className="text-zinc-400 shrink-0" />
+            <ChevronRight size={18} className="text-[var(--text-secondary)] shrink-0" />
           </button>
         </section>
 
-        {/* 3. Sección HISTORIAL DE CIERRES (X) */}
+        {/* 3. Sección HISTORIAL DE CIERRES */}
         <section className="mt-5">
-          <h3 className="text-xs font-semibold tracking-wider text-zinc-400 uppercase mb-2.5">
+          <h3 className="text-xs font-semibold tracking-wider text-[var(--text-secondary)] uppercase mb-2.5">
             HISTORIAL DE CIERRES ({closures.length})
           </h3>
 
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {closures.length === 0 ? (
-              <div className="rounded-2xl border border-zinc-200/80 dark:border-white/5 bg-[var(--bg-elevated)] p-8 text-center shadow-sm">
+              <div className="col-span-full rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-8 text-center shadow-sm">
                 <p className="text-sm font-medium text-[var(--text-secondary)]">
                   Aún no se han registrado cierres de ciclo.
                 </p>
@@ -170,24 +167,20 @@ export default function SummaryView({ onModalStateChange }: SummaryViewProps) {
               closures.map((closure) => (
                 <article
                   key={closure.id}
-                  className="rounded-2xl border border-zinc-200/80 dark:border-white/5 bg-[var(--bg-elevated)] p-4 shadow-sm transition-colors duration-75 space-y-2"
+                  className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-4 shadow-sm transition-colors duration-75 space-y-2"
                 >
                   {/* Encabezado: Rango de fechas en negrita y badge de fecha de ejecución */}
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-[15px] font-bold text-[var(--text-primary)] leading-snug truncate">
                       {closure.periodLabel}
                     </span>
-                    <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-zinc-100 dark:bg-white/10 text-zinc-400 font-medium whitespace-nowrap shrink-0">
-                      {new Date(closure.closedAt).toLocaleDateString("es-CO", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                      })}
+                    <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-black/5 dark:bg-white/10 text-[var(--text-secondary)] font-medium whitespace-nowrap shrink-0">
+                      {formatFullDate(closure.closedAt)}
                     </span>
                   </div>
 
                   {/* Fila Inferior: Vendido y Utilidad en verde */}
-                  <div className="flex items-center justify-between text-xs pt-1 border-t border-zinc-100 dark:border-white/5">
+                  <div className="flex items-center justify-between text-xs pt-1 border-t border-[var(--border-color)]">
                     <span className="text-[var(--text-secondary)] font-medium">
                       Vendido:{" "}
                       <strong className="text-[var(--text-primary)] font-bold tabular-nums">
@@ -201,7 +194,7 @@ export default function SummaryView({ onModalStateChange }: SummaryViewProps) {
 
                   {/* Nota opcional de arqueo */}
                   {closure.differenceNote && (
-                    <p className="text-xs text-[var(--text-secondary)] pt-1 italic border-t border-zinc-100 dark:border-white/5">
+                    <p className="text-xs text-[var(--text-secondary)] pt-1 italic border-t border-[var(--border-color)]">
                       Nota: {closure.differenceNote}
                     </p>
                   )}

@@ -137,7 +137,8 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       }
 
       setError(null);
-    } catch (fetchErr: any) {
+    } catch (fetchErr: unknown) {
+      const errMsg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
       console.warn("Fallo al conectar con Supabase, usando respaldo:", fetchErr);
       if (isDemo) {
         const demoData = generateDemoSeed();
@@ -146,7 +147,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         setSales(demoData.sales);
         setClosures(demoData.closures);
       } else {
-        report(`Error de conexión: ${fetchErr?.message || "Sin red"}`);
+        report(`Error de conexión: ${errMsg || "Sin red"}`);
       }
     } finally {
       setLoading(false);
@@ -155,8 +156,6 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
 
   // Manejo de sesión y suscripción en tiempo real
   useEffect(() => {
-    let activeChannel: ReturnType<typeof supabase.channel> | null = null;
-
     const setupAuthAndStore = async () => {
       const hasDemoBypass = localStorage.getItem("quiral_demo_bypass") === "true";
 
@@ -260,9 +259,6 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       authListener.subscription.unsubscribe();
-      if (activeChannel) {
-        supabase.removeChannel(activeChannel);
-      }
     };
   }, [loadData]);
 
@@ -274,15 +270,42 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       .channel(`realtime:store:${storeId}`)
       .on(
         "postgres_changes",
+        { event: "*", schema: "public", table: "suppliers", filter: `store_id=eq.${storeId}` },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            const rowData = payload.new?.data as Supplier;
+            if (rowData) {
+              setSuppliers((prev) => [rowData, ...prev.filter((s) => s.id !== rowData.id)]);
+            }
+          } else if (payload.eventType === "UPDATE") {
+            const rowData = payload.new?.data as Supplier;
+            if (rowData) {
+              setSuppliers((prev) => prev.map((s) => (s.id === rowData.id ? rowData : s)));
+            }
+          } else if (payload.eventType === "DELETE") {
+            const oldId = (payload.old as { id?: string })?.id;
+            if (oldId) {
+              setSuppliers((prev) => prev.filter((s) => s.id !== oldId));
+            }
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
         { event: "*", schema: "public", table: "products", filter: `store_id=eq.${storeId}` },
         (payload) => {
-          if (payload.eventType === "INSERT" || payload.eventType === "UPDATE") {
+          if (payload.eventType === "INSERT") {
             const rowData = payload.new?.data as Product;
             if (rowData) {
               setProducts((prev) => [rowData, ...prev.filter((p) => p.id !== rowData.id)]);
             }
+          } else if (payload.eventType === "UPDATE") {
+            const rowData = payload.new?.data as Product;
+            if (rowData) {
+              setProducts((prev) => prev.map((p) => (p.id === rowData.id ? rowData : p)));
+            }
           } else if (payload.eventType === "DELETE") {
-            const oldId = payload.old?.id as string;
+            const oldId = (payload.old as { id?: string })?.id;
             if (oldId) {
               setProducts((prev) => prev.filter((p) => p.id !== oldId));
             }
@@ -303,6 +326,11 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
             if (rowData) {
               setSales((prev) => prev.map((s) => (s.id === rowData.id ? rowData : s)));
             }
+          } else if (payload.eventType === "DELETE") {
+            const oldId = (payload.old as { id?: string })?.id;
+            if (oldId) {
+              setSales((prev) => prev.filter((s) => s.id !== oldId));
+            }
           }
         }
       )
@@ -310,18 +338,32 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         "postgres_changes",
         { event: "*", schema: "public", table: "cycle_closings", filter: `store_id=eq.${storeId}` },
         (payload) => {
-          if (payload.eventType === "INSERT" || payload.eventType === "UPDATE") {
+          if (payload.eventType === "INSERT") {
             const rowData = payload.new?.data as Closure;
             if (rowData) {
               setClosures((prev) => [rowData, ...prev.filter((c) => c.id !== rowData.id)]);
             }
+          } else if (payload.eventType === "UPDATE") {
+            const rowData = payload.new?.data as Closure;
+            if (rowData) {
+              setClosures((prev) => prev.map((c) => (c.id === rowData.id ? rowData : c)));
+            }
+          } else if (payload.eventType === "DELETE") {
+            const oldId = (payload.old as { id?: string })?.id;
+            if (oldId) {
+              setClosures((prev) => prev.filter((c) => c.id !== oldId));
+            }
           }
         }
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          console.warn(`[Realtime] Aviso de conexión (${status}):`, err);
+        }
+      });
 
     return () => {
-      supabase.removeChannel(channel);
+      void supabase.removeChannel(channel);
     };
   }, [storeId, isDemoUser]);
 

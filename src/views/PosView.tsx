@@ -75,11 +75,11 @@ export default function PosView({ onCheckoutStateChange }: PosViewProps) {
   return (
     <>
       <div className="quiral-scroll-container" id="pos-scroll">
-        <div className="mx-auto max-w-xl px-4">
-          {/* Header sticky con búsqueda y chips de categorías con efecto liquid glass */}
-          <div className="sticky top-0 z-20 -mx-4 px-4 pt-1 pb-2 mb-4 bg-white/85 dark:bg-black/85 backdrop-blur-md border-b border-zinc-100 dark:border-white/5 transition-colors duration-75">
+        <div className="mx-auto max-w-xl md:max-w-4xl lg:max-w-5xl px-4">
+          {/* Header sticky con fondo sólido opaco nativo (Apple HIG) */}
+          <div className="sticky top-0 z-20 -mx-4 px-4 pt-1 pb-2.5 mb-4 bg-[var(--bg-primary)] border-b border-[var(--border-color)] transition-colors duration-75">
             <div className="relative">
-              <div className="flex min-h-12 items-center gap-2.5 rounded-2xl border border-zinc-100 dark:border-white/5 bg-[var(--bg-elevated)] px-3.5 shadow-sm focus-within:border-[#007aff] transition-colors duration-75">
+              <div className="flex min-h-12 items-center gap-2.5 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] px-3.5 shadow-sm focus-within:border-[#007aff] transition-colors duration-75">
                 <Search size={18} className="shrink-0 text-[var(--text-secondary)]" />
                 <input
                   value={query}
@@ -111,7 +111,7 @@ export default function PosView({ onCheckoutStateChange }: PosViewProps) {
                     className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-bold transition-colors duration-75 active:scale-95 ${
                       isActive
                         ? "bg-[#007aff] text-white shadow-sm"
-                        : "border border-zinc-100 dark:border-white/5 bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                        : "border border-[var(--border-color)] bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                     }`}
                   >
                     {item}
@@ -121,8 +121,8 @@ export default function PosView({ onCheckoutStateChange }: PosViewProps) {
             </div>
           </div>
 
-          {/* Listado de tarjetas atómicas compactas de productos */}
-          <div className={`space-y-3 ${cartUnits > 0 ? "pb-28" : "pb-24"}`}>
+          {/* Listado de tarjetas de productos en grilla adaptable */}
+          <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 ${cartUnits > 0 ? "pb-28" : "pb-24"}`}>
             {filteredProducts.map((product) => (
               <PosProductCard
                 key={product.id}

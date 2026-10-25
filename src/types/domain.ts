@@ -58,19 +58,21 @@ export interface Sale {
   items: SaleItem[];
 }
 
+export interface ClosureTopSellerTx {
+  id: string;
+  date: string;
+  customer: string;
+  qty: number;
+  price: number;
+}
+
 export interface ClosureTopSeller {
   id: string;
   name: string;
   qty: number;
   revenue: number;
   profit: number;
-  tx?: Array<{
-    id: string;
-    date: string;
-    customer: string;
-    qty: number;
-    price: number;
-  }>;
+  tx?: ClosureTopSellerTx[];
 }
 
 export interface ClosureTopReturned {

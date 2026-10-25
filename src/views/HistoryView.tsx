@@ -1,7 +1,7 @@
 import { Search, X } from "lucide-react";
 import React, { useMemo, useState } from "react";
 import { useInventory } from "../context/InventoryContext";
-import { formatCOP, getWarrantyStatus } from "../utils/formatters";
+import { formatCOP, formatShortDate, getWarrantyStatus } from "../utils/formatters";
 
 interface HistoryViewProps {
   onGoToPOS?: () => void;
@@ -27,11 +27,11 @@ export default function HistoryView({ onGoToPOS }: HistoryViewProps) {
 
   return (
     <div id="history-scroll" className="quiral-scroll-container transition-colors duration-75">
-      <div className="mx-auto max-w-xl px-4">
-        {/* Header sticky con buscador y efecto liquid glass */}
-        <div className="sticky top-0 z-20 -mx-4 px-4 pt-1 pb-2 mb-4 bg-white/85 dark:bg-black/85 backdrop-blur-md border-b border-zinc-100 dark:border-white/5 transition-colors duration-75">
+      <div className="mx-auto max-w-xl md:max-w-4xl lg:max-w-5xl px-4">
+        {/* Header sticky con fondo sólido opaco nativo (Apple HIG) */}
+        <div className="sticky top-0 z-20 -mx-4 px-4 pt-1 pb-2.5 mb-4 bg-[var(--bg-primary)] border-b border-[var(--border-color)] transition-colors duration-75">
           <div className="relative">
-            <div className="flex min-h-12 items-center gap-2.5 rounded-2xl border border-zinc-100 dark:border-white/5 bg-[var(--bg-elevated)] px-3.5 shadow-sm transition-colors duration-75 focus-within:border-[#007aff]">
+            <div className="flex min-h-12 items-center gap-2.5 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] px-3.5 shadow-sm transition-colors duration-75 focus-within:border-[#007aff]">
               <Search size={18} className="text-[var(--text-secondary)] shrink-0" />
               <input
                 type="text"
@@ -55,9 +55,9 @@ export default function HistoryView({ onGoToPOS }: HistoryViewProps) {
         </div>
 
         {/* Listado de Ventas en Historial */}
-        <section className="space-y-3 pb-24">
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-3 pb-24">
           {filteredSales.length === 0 ? (
-            <div className="rounded-3xl border border-zinc-100 dark:border-white/5 bg-[var(--bg-elevated)] p-10 text-center shadow-sm">
+            <div className="col-span-full rounded-3xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-10 text-center shadow-sm">
               <p className="text-sm font-medium text-[var(--text-secondary)]">
                 {query
                   ? "No se encontraron ventas que coincidan con la búsqueda."
@@ -81,7 +81,7 @@ export default function HistoryView({ onGoToPOS }: HistoryViewProps) {
                 <article
                   key={sale.id}
                   onClick={() => setOpenSaleId(isOpen ? null : sale.id)}
-                  className="rounded-2xl border border-zinc-100 dark:border-white/5 bg-[var(--bg-elevated)] p-3.5 shadow-sm transition-colors duration-75 cursor-pointer select-none active:scale-[0.99] hover:border-blue-500/40"
+                  className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-3.5 shadow-sm transition-colors duration-75 cursor-pointer select-none active:scale-[0.99] hover:border-blue-500/40"
                 >
                   {/* Fila principal: Número de venta + Cliente | Total a la derecha */}
                   <div className="flex items-start justify-between gap-3">
@@ -90,10 +90,7 @@ export default function HistoryView({ onGoToPOS }: HistoryViewProps) {
                         #{sale.saleNumber} · {sale.customerName}
                       </h3>
                       <p className="mt-0.5 truncate text-xs text-[var(--text-secondary)]">
-                        {new Date(sale.createdAt).toLocaleDateString("es-CO", {
-                          day: "2-digit",
-                          month: "short",
-                        })}{" "}
+                        {formatShortDate(sale.createdAt)}{" "}
                         · {sale.paymentMethod}
                         {sale.items.length > 0 && ` · ${sale.items.reduce((s, it) => s + it.qty, 0)} uds`}
                       </p>
@@ -108,7 +105,7 @@ export default function HistoryView({ onGoToPOS }: HistoryViewProps) {
 
                   {/* Detalle desplegable de productos y garantías */}
                   {isOpen && (
-                    <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-white/5 space-y-2.5 animate-in fade-in duration-150">
+                    <div className="mt-3 pt-3 border-t border-[var(--border-color)] space-y-2.5 animate-in fade-in duration-150">
                       {sale.items.map((item) => {
                         const w = getWarrantyStatus(
                           sale.createdAt,
@@ -119,7 +116,7 @@ export default function HistoryView({ onGoToPOS }: HistoryViewProps) {
                         return (
                           <div
                             key={item.id}
-                            className="rounded-xl bg-black/[0.02] dark:bg-white/[0.03] p-3 border border-zinc-100 dark:border-white/5 space-y-2"
+                            className="rounded-xl bg-black/[0.02] dark:bg-white/[0.03] p-3 border border-[var(--border-color)] space-y-2"
                           >
                             <div className="flex items-start justify-between gap-2">
                               <span className="text-sm font-semibold text-[var(--text-primary)]">

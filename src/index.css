@@ -205,6 +205,12 @@ a {
   padding-right: 1rem;
 }
 
+@media (min-width: 768px) {
+  .quiral-top-header {
+    left: 16rem;
+  }
+}
+
 /* 
   Contenedor de desplazamiento vertical exclusivo:
   Comienza exactamente debajo de la cabecera fija y reserva el espacio inferior

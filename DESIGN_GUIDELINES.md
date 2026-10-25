@@ -85,7 +85,7 @@ Se registran los elementos, patrones y comportamientos eliminados o rechazados f
 | **Padding reducido en footer de modales (`0.5rem` + safe-area)** | **Confirmada** | 2026-10-24 | Ajustado en `ModalSheet.tsx` para acercar el botón «Listo» al borde. |
 | **Diferenciación de vistas concentrada en `TopHeader` por props** | **Confirmada** | 2026-10-24 | Fondo nativo y acento azul unificados en toda la app; `TopHeader` recibe `variant="accent"` para modularidad escalable. |
 | **Migración de gestos a Framer Motion** | **Descartada** | 2026-10-24 | Descartada para evitar dependencias pesadas innecesarias; resuelto con eventos táctiles nativos. |
-| **Implementación de navegación por pestañas en Desktop** | **Pendiente** | 2026-10-24 | Se evaluará en la fase de optimización de escritorio para resoluciones > 768px. |
+| **Navegación Desktop mediante Sidebar persistente (>= 768px)** | **Confirmada** | 2026-10-25 | Implementado en `DesktopSidebar.tsx` y `App.tsx`; oculta Navbar móvil y expande catálogo a grilla responsiva de 2 columnas. |
 
 ---
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import AuthScreen from "./components/AuthScreen";
+import DesktopSidebar from "./components/DesktopSidebar";
 import FloatingCartFAB from "./components/FloatingCartFAB";
 import Navbar, { type NavbarVariant, type Tab } from "./components/Navbar";
 import NewProductModal from "./components/NewProductModal";
@@ -125,12 +126,12 @@ function AppInner() {
   }
 
   return (
-    <div className="h-full w-full overflow-hidden bg-[var(--bg-primary)] text-[var(--text-primary)] relative">
-      {/* Cabecera Fija Nativa Superior (100% sólida, sin blur, estática, con diferenciador por props) */}
-      <TopHeader
+    <div className="h-full w-full overflow-hidden bg-[var(--bg-primary)] text-[var(--text-primary)] flex relative">
+      {/* Navegación lateral persistente para pantallas de escritorio (Apple HIG / macOS POS) */}
+      <DesktopSidebar
         activeTab={activeTab}
-        variant="accent"
         onTabChange={handleTabChange}
+        cartCount={cartUnits}
         theme={theme}
         onThemeChange={setTheme}
         onOpenSuppliers={() => setIsSuppliersModalOpen(true)}
@@ -138,29 +139,43 @@ function AppInner() {
         onLogout={signOut}
       />
 
-      {/* Contenedor Principal: las vistas manejan su scroll con .quiral-scroll-container */}
-      <main className="h-full w-full overflow-hidden relative">
-        {activeTab === "inventory" ? (
-          <InventoryView onOpenSuppliers={() => setIsSuppliersModalOpen(true)} />
-        ) : activeTab === "sell" ? (
-          <PosView onCheckoutStateChange={setIsCheckoutOpen} />
-        ) : activeTab === "history" ? (
-          <HistoryView onGoToPOS={() => handleTabChange("sell")} />
-        ) : activeTab === "summary" ? (
-          <SummaryView onModalStateChange={setIsSummaryModalOpen} />
-        ) : (
-          <div className="quiral-scroll-container px-4 pb-24 text-center text-[var(--text-secondary)]">
-            <p className="text-base font-semibold pt-12">Esta sección estará disponible próximamente.</p>
-            <button
-              type="button"
-              onClick={() => setActiveTab("inventory")}
-              className="mt-4 inline-flex items-center justify-center rounded-xl bg-[#007aff] px-4 py-2 text-xs font-bold text-white shadow-sm"
-            >
-              Volver a Inventario
-            </button>
-          </div>
-        )}
-      </main>
+      <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden relative">
+        {/* Cabecera Fija Nativa Superior (100% sólida, sin blur, estática, con diferenciador por props) */}
+        <TopHeader
+          activeTab={activeTab}
+          variant="accent"
+          onTabChange={handleTabChange}
+          theme={theme}
+          onThemeChange={setTheme}
+          onOpenSuppliers={() => setIsSuppliersModalOpen(true)}
+          onOpenProfileSecurity={() => setIsProfileSecurityOpen(true)}
+          onLogout={signOut}
+        />
+
+        {/* Contenedor Principal: las vistas manejan su scroll con .quiral-scroll-container */}
+        <main className="h-full w-full overflow-hidden relative">
+          {activeTab === "inventory" ? (
+            <InventoryView onOpenSuppliers={() => setIsSuppliersModalOpen(true)} />
+          ) : activeTab === "sell" ? (
+            <PosView onCheckoutStateChange={setIsCheckoutOpen} />
+          ) : activeTab === "history" ? (
+            <HistoryView onGoToPOS={() => handleTabChange("sell")} />
+          ) : activeTab === "summary" ? (
+            <SummaryView onModalStateChange={setIsSummaryModalOpen} />
+          ) : (
+            <div className="quiral-scroll-container px-4 pb-24 text-center text-[var(--text-secondary)]">
+              <p className="text-base font-semibold pt-12">Esta sección estará disponible próximamente.</p>
+              <button
+                type="button"
+                onClick={() => setActiveTab("inventory")}
+                className="mt-4 inline-flex items-center justify-center rounded-xl bg-[#007aff] px-4 py-2 text-xs font-bold text-white shadow-sm"
+              >
+                Volver a Inventario
+              </button>
+            </div>
+          )}
+        </main>
+      </div>
 
       {/* Botón flotante de acceso rápido a Vender en todas las pantallas distintas a Vender */}
       {!hasActiveModal && activeTab !== "sell" && (

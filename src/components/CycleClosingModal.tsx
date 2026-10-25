@@ -1,7 +1,7 @@
 import { Check, ChevronLeft, ChevronRight, Clock } from "lucide-react";
 import React, { useMemo, useState } from "react";
-import { Closure, Product, Sale } from "../types/domain";
-import { formatCOP } from "../utils/formatters";
+import { Closure, ClosureTopSellerTx, Product, Sale } from "../types/domain";
+import { formatCOP, formatShortDate } from "../utils/formatters";
 import ModalSheet from "./ModalSheet";
 
 interface CycleClosingModalProps {
@@ -79,7 +79,7 @@ export default function CycleClosingModal({
     }, 0);
 
     // Top Sellers
-    const sellerMap: Record<string, { id: string; name: string; qty: number; revenue: number; profit: number; tx: any[] }> = {};
+    const sellerMap: Record<string, { id: string; name: string; qty: number; revenue: number; profit: number; tx: ClosureTopSellerTx[] }> = {};
     inRange.forEach((s) => {
       s.items.forEach((item) => {
         const itemCost = item.unitCostSnapshot ?? getProductAvgCost(item.productId);
@@ -198,10 +198,7 @@ export default function CycleClosingModal({
   ).getDay();
 
   const handleConfirm = () => {
-    const formatShort = (d: Date) =>
-      d.toLocaleDateString("es-CO", { day: "numeric", month: "short" });
-
-    const periodLabel = `${formatShort(startDate)} – ${formatShort(endDate)} ${endDate.getFullYear()}`;
+    const periodLabel = `${formatShortDate(startDate)} – ${formatShortDate(endDate)} ${endDate.getFullYear()}`;
 
     onConfirmClose({
       periodLabel,
