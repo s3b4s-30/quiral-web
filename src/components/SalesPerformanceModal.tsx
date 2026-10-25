@@ -2,6 +2,7 @@ import { CheckCircle2, ChevronLeft, Flame, Repeat, ShoppingBag } from "lucide-re
 import React, { useMemo, useState } from "react";
 import { Closure, ClosureTopSellerTx, Product, Sale } from "../types/domain";
 import { formatCOP, formatShortDate } from "../utils/formatters";
+import { useInventory } from "../context/InventoryContext";
 import ModalSheet from "./ModalSheet";
 
 interface SalesPerformanceModalProps {
@@ -39,6 +40,7 @@ export default function SalesPerformanceModal({
   products,
   showCosts = false,
 }: SalesPerformanceModalProps) {
+  const { loading } = useInventory();
   const [selectedCycleId, setSelectedCycleId] = useState<string>("actual");
   const [metricTab, setMetricTab] = useState<"sellers" | "returned">("sellers");
   const [openTxId, setOpenTxId] = useState<string | null>(null);
@@ -186,7 +188,7 @@ export default function SalesPerformanceModal({
           <ChevronLeft size={20} />
         </button>
       }
-      className="max-h-[92vh]"
+
       contentClassName="p-4 space-y-4"
     >
       {/* 1. Selector de Período Consultado */}
@@ -258,7 +260,20 @@ export default function SalesPerformanceModal({
       {/* 3. Listado de Datos según la Pestaña Activa */}
       <div className="space-y-3 pb-8">
         {metricTab === "sellers" ? (
-          sellersList.length === 0 ? (
+          loading ? (
+            Array.from({ length: 4 }).map((_, idx) => (
+              <div
+                key={`perf-skeleton-${idx}`}
+                className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-4 shadow-sm animate-pulse space-y-2.5 h-20"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="h-4 w-40 rounded bg-black/5 dark:bg-white/10" />
+                  <div className="h-4 w-16 rounded-full bg-black/5 dark:bg-white/10" />
+                </div>
+                <div className="h-3 w-48 rounded bg-black/5 dark:bg-white/10" />
+              </div>
+            ))
+          ) : sellersList.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-10 text-center shadow-sm">
               <ShoppingBag size={40} className="text-[var(--text-secondary)] mb-2 opacity-50" />
               <p className="text-sm font-medium text-[var(--text-secondary)]">
@@ -333,7 +348,20 @@ export default function SalesPerformanceModal({
             })
           )
         ) : (
-          returnedList.length === 0 ? (
+          loading ? (
+            Array.from({ length: 4 }).map((_, idx) => (
+              <div
+                key={`ret-skeleton-${idx}`}
+                className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-4 shadow-sm animate-pulse space-y-2.5 h-20"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="h-4 w-40 rounded bg-black/5 dark:bg-white/10" />
+                  <div className="h-4 w-16 rounded-full bg-black/5 dark:bg-white/10" />
+                </div>
+                <div className="h-3 w-48 rounded bg-black/5 dark:bg-white/10" />
+              </div>
+            ))
+          ) : returnedList.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-10 text-center shadow-sm">
               <CheckCircle2 size={40} className="text-emerald-500 mb-2" />
               <p className="text-sm font-semibold text-[var(--text-primary)]">

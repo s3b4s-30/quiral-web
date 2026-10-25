@@ -53,6 +53,7 @@ export default function ModalSheet({
     const originalTouchAction = document.body.style.touchAction;
     document.body.style.overflow = "hidden";
     document.body.style.touchAction = "none";
+    document.body.classList.add("modal-open");
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -64,6 +65,7 @@ export default function ModalSheet({
     return () => {
       document.body.style.overflow = originalOverflow;
       document.body.style.touchAction = originalTouchAction;
+      document.body.classList.remove("modal-open");
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
@@ -157,9 +159,14 @@ export default function ModalSheet({
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex flex-col justify-end bg-black/60 dark:bg-black/75 sm:items-center sm:justify-center p-0 sm:p-4 transition-opacity duration-[180ms] ease-out ${
+      className={`fixed inset-0 z-50 flex flex-col justify-end bg-black/60 dark:bg-black/75 sm:items-center sm:justify-center p-0 sm:p-4 touch-none overscroll-none select-none transition-opacity duration-[180ms] ease-out ${
         isClosing ? "opacity-0" : "opacity-100 animate-in fade-in"
       }`}
+      onTouchMove={(e) => {
+        if (e.target === e.currentTarget) {
+          e.preventDefault();
+        }
+      }}
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           handleClose();
@@ -170,7 +177,7 @@ export default function ModalSheet({
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-sheet-title"
-        className={`flex max-h-[92dvh] sm:max-h-[85vh] w-full ${maxWidth} flex-col overflow-hidden rounded-t-[32px] sm:rounded-[32px] border border-[var(--border-color)] bg-[var(--bg-elevated)] shadow-2xl ${className}`}
+        className={`flex max-h-[calc(100dvh-2.25rem)] sm:max-h-[85vh] w-full ${maxWidth} flex-col overflow-hidden rounded-t-[32px] sm:rounded-[32px] border border-[var(--border-color)] bg-[var(--bg-elevated)] shadow-2xl modal-sheet-dialog ${className}`}
         style={{
           transform: isClosing
             ? "translateY(100%)"
@@ -195,12 +202,12 @@ export default function ModalSheet({
           onMouseDown={handleMouseDown}
         >
           {/* Píldora táctil de arrastre (Handle estilo iOS ajustado) */}
-          <div className="flex justify-center pt-2.5 pb-1 shrink-0">
+          <div className="flex justify-center pt-3 pb-1.5 shrink-0">
             <div className="h-1 w-9 rounded-full bg-neutral-300 dark:bg-neutral-600 transition-colors duration-75 pointer-events-none" />
           </div>
 
           {/* Barra de cabecera con proporción superior optimizada */}
-          <header className="relative flex items-center justify-between px-4 pt-1 pb-2.5">
+          <header className="relative flex items-center justify-between px-4 pt-1 pb-3">
             {headerLeft !== undefined ? (
               headerLeft
             ) : (

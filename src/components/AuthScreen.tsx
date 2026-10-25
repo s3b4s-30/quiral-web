@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { DEMO_BYPASS_PASS, DEMO_BYPASS_USER, requestPasswordReset, signIn, signUpUser } from "../lib/authService";
 
 interface AuthScreenProps {
-  onAuthSuccess: () => void;
+  onAuthSuccess: () => Promise<void> | void;
 }
 
 type AuthMode = "login" | "register" | "forgot";
@@ -27,18 +27,24 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
     setError(null);
     setSuccessMessage(null);
 
-    if (!identifier.trim() || !password) {
+    const cleanUser = identifier.trim();
+    if (!cleanUser || !password) {
       setError("Ingresa tu usuario/correo y contraseña.");
       return;
     }
 
     setLoading(true);
     try {
-      await signIn(identifier, password);
-      onAuthSuccess();
-    } catch (err: any) {
+      const authResult = await signIn(cleanUser, password);
+      if (!authResult) {
+        throw new Error("No se pudo iniciar sesión. Verifica tus credenciales.");
+      }
+      // Actualizar el estado global de forma inmediata sin forzar recarga (F5)
+      await onAuthSuccess();
+    } catch (err: unknown) {
       console.error("Error en login:", err);
-      setError(err?.message || "Credenciales incorrectas o problema de conexión.");
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message || "Credenciales incorrectas o problema de conexión.");
     } finally {
       setLoading(false);
     }
@@ -69,18 +75,17 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
         isJoiningStore ? storeIdToJoin : undefined
       );
       setSuccessMessage("¡Cuenta creada exitosamente! Iniciando sesión...");
-      setTimeout(async () => {
-        try {
-          await signIn(username, password);
-          onAuthSuccess();
-        } catch {
-          setMode("login");
-          setIdentifier(username);
-        }
-      }, 1000);
-    } catch (err: any) {
+      try {
+        await signIn(username, password);
+        await onAuthSuccess();
+      } catch {
+        setMode("login");
+        setIdentifier(username);
+      }
+    } catch (err: unknown) {
       console.error("Error en registro:", err);
-      setError(err?.message || "No se pudo registrar la cuenta.");
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message || "No se pudo registrar la cuenta.");
     } finally {
       setLoading(false);
     }
@@ -100,9 +105,10 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
     try {
       await requestPasswordReset(email);
       setSuccessMessage("Se ha enviado un enlace de recuperación a tu correo.");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error en recuperación:", err);
-      setError(err?.message || "No se pudo enviar el correo de recuperación.");
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message || "No se pudo enviar el correo de recuperación.");
     } finally {
       setLoading(false);
     }
@@ -114,7 +120,7 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/75 dark:bg-black/85 p-4 sm:p-6 transition-all duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/75 dark:bg-black/85 p-4 pt-16 sm:p-6 sm:pt-16 transition-all duration-200">
       <div className="w-full max-w-md rounded-3xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-6 sm:p-8 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         {/* Cabecera / Marca Quiral */}
         <div className="flex flex-col items-center text-center mb-6">

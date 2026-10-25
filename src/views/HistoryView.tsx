@@ -8,7 +8,7 @@ interface HistoryViewProps {
 }
 
 export default function HistoryView({ onGoToPOS: _onGoToPOS }: HistoryViewProps) {
-  const { sales, toggleItemWarranty } = useInventory();
+  const { sales, toggleItemWarranty, loading } = useInventory();
   const [openSaleId, setOpenSaleId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
 
@@ -26,7 +26,7 @@ export default function HistoryView({ onGoToPOS: _onGoToPOS }: HistoryViewProps)
   }, [sales, query]);
 
   return (
-    <div id="history-scroll" className="quiral-scroll-container transition-colors duration-75">
+    <div id="history-scroll" className="quiral-scroll-container pt-16 transition-colors duration-75">
       <div className="mx-auto max-w-xl md:max-w-4xl lg:max-w-5xl px-4">
         {/* Header sticky con fondo sólido opaco nativo (Apple HIG) */}
         <div className="sticky top-0 z-20 -mx-4 px-4 pt-1 pb-2.5 mb-4 bg-[var(--bg-primary)] border-b border-[var(--border-color)] transition-colors duration-75">
@@ -56,18 +56,40 @@ export default function HistoryView({ onGoToPOS: _onGoToPOS }: HistoryViewProps)
 
         {/* Listado de Ventas en Historial */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-3 pb-32">
-          {filteredSales.length === 0 ? (
-            <div className="col-span-full rounded-3xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-10 text-center shadow-sm">
-              <p className="text-sm font-medium text-[var(--text-secondary)]">
+          {loading ? (
+            Array.from({ length: 4 }).map((_, idx) => (
+              <div
+                key={`hist-skeleton-${idx}`}
+                className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-4 shadow-sm animate-pulse space-y-3 h-28"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="h-4 w-32 rounded bg-black/5 dark:bg-white/10" />
+                  <div className="h-4 w-20 rounded-full bg-black/5 dark:bg-white/10" />
+                </div>
+                <div className="flex items-center justify-between pt-2 border-t border-[var(--border-color)]">
+                  <div className="h-6 w-28 rounded-lg bg-black/5 dark:bg-white/10" />
+                  <div className="h-4 w-24 rounded bg-black/5 dark:bg-white/10" />
+                </div>
+              </div>
+            ))
+          ) : filteredSales.length === 0 ? (
+            <div className="col-span-full rounded-3xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-8 sm:p-10 text-center shadow-sm select-none animate-in fade-in duration-150">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#007aff]/10 text-[#007aff] dark:text-[#0a84ff] mb-3">
+                <Search size={26} />
+              </div>
+              <h4 className="text-base font-bold text-[var(--text-primary)]">
+                {query ? "Sin coincidencias de venta" : "Historial vacío"}
+              </h4>
+              <p className="mt-1 text-xs sm:text-sm font-medium text-[var(--text-secondary)] max-w-sm mx-auto">
                 {query
-                  ? "No se encontraron ventas que coincidan con la búsqueda."
-                  : "Sin ventas registradas en el historial."}
+                  ? "No se encontraron ventas asociadas al cliente o número consultado."
+                  : "Aún no se han completado transacciones comerciales en este ciclo."}
               </p>
               {query && (
                 <button
                   type="button"
                   onClick={() => setQuery("")}
-                  className="mt-4 inline-flex items-center justify-center rounded-xl bg-[#007aff] px-4 py-2 text-xs font-bold text-white shadow-sm"
+                  className="mt-4 inline-flex items-center justify-center rounded-xl bg-[#007aff] px-4 py-2 text-xs font-bold text-white shadow-sm active:scale-95 transition-transform"
                 >
                   Restablecer búsqueda
                 </button>
@@ -119,40 +141,49 @@ export default function HistoryView({ onGoToPOS: _onGoToPOS }: HistoryViewProps)
                             className="rounded-xl bg-black/[0.02] dark:bg-white/[0.03] p-3 border border-[var(--border-color)] space-y-2"
                           >
                             <div className="flex items-start justify-between gap-2">
-                              <span className="text-sm font-semibold text-[var(--text-primary)] min-w-0 flex-1 truncate">
-                                {item.qty}× {item.productName}
-                              </span>
-                              <span className="tabular-nums text-xs font-semibold text-[var(--text-secondary)] shrink-0 whitespace-nowrap">
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-semibold text-[var(--text-primary)] leading-tight">
+                                  {item.qty}x {item.productName}
+                                </p>
+                                <p className="tabular-nums text-[11px] text-[var(--text-secondary)] mt-0.5">
+                                  {formatCOP(item.unitPrice)} c/u
+                                </p>
+                              </div>
+                              <span className="tabular-nums text-xs font-bold text-[var(--text-primary)] shrink-0">
                                 {formatCOP(item.unitPrice * item.qty)}
                               </span>
                             </div>
 
-                            {/* Fila de Cobertura de Garantía con flex-wrap para evitar solapamientos */}
-                            <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+                            {/* Badge de garantía interactivo */}
+                            <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 border-t border-[var(--border-color)]/60 text-[11px]">
                               <span
-                                className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                                className={`rounded-full px-2 py-0.5 font-bold ${
                                   w.status === "claimed"
-                                    ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400"
+                                    ? "bg-[#ff3b30]/15 text-[#ff3b30]"
                                     : w.status === "expired"
-                                    ? "bg-zinc-100 text-zinc-600 dark:bg-white/10 dark:text-zinc-400"
-                                    : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
+                                    ? "bg-black/5 dark:bg-white/10 text-[var(--text-secondary)]"
+                                    : "bg-[#30d158]/15 text-[#30d158]"
                                 }`}
                               >
                                 {w.label}
                               </span>
 
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleItemWarranty(sale.id, item.id);
-                                }}
-                                className="text-xs font-semibold text-amber-600 dark:text-amber-400 hover:underline active:scale-95 transition-transform"
-                              >
-                                {item.warrantyClaimed
-                                  ? "Revertir garantía"
-                                  : "Reclamar garantía"}
-                              </button>
+                              {w.status !== "expired" && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleItemWarranty(sale.id, item.id);
+                                  }}
+                                  className={`rounded-lg px-2.5 py-1 text-xs font-bold active:scale-95 transition-transform ${
+                                    item.warrantyClaimed
+                                      ? "bg-black/5 dark:bg-white/10 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                                      : "bg-[#ff3b30]/15 text-[#ff3b30] hover:bg-[#ff3b30]/25"
+                                  }`}
+                                >
+                                  {item.warrantyClaimed ? "Revertir reclamo" : "Marcar reclamo"}
+                                </button>
+                              )}
                             </div>
                           </div>
                         );

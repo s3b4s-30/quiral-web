@@ -22,6 +22,7 @@ export default function InventoryView({ onOpenSuppliers: _onOpenSuppliers }: Inv
     getSupplier,
     showCosts,
     setSelectedProduct,
+    loading,
   } = useInventory();
 
   // Filtros
@@ -66,7 +67,7 @@ export default function InventoryView({ onOpenSuppliers: _onOpenSuppliers }: Inv
 
   return (
     /* Contenedor Principal: Único elemento responsable del scroll vertical en la vista */
-    <div id="inventory-scroll" className="quiral-scroll-container transition-colors duration-75">
+    <div id="inventory-scroll" className="quiral-scroll-container pt-16 transition-colors duration-75">
       <div className="mx-auto max-w-xl md:max-w-4xl lg:max-w-5xl px-4">
         {/* 1. Buscador y Filtros Fijos con Fondo Sólido Opaco Nativo (Apple HIG) */}
         <div className="sticky top-0 z-20 -mx-4 px-4 pt-1 pb-2.5 mb-4 bg-[var(--bg-primary)] border-b border-[var(--border-color)] transition-colors duration-75">
@@ -127,21 +128,33 @@ export default function InventoryView({ onOpenSuppliers: _onOpenSuppliers }: Inv
             <div className="mt-2.5 grid grid-cols-1 min-[360px]:grid-cols-3 gap-2 text-center">
               <div className="rounded-xl bg-[var(--bg-elevated)] p-2 border border-[var(--border-color)] min-w-0">
                 <p className="text-[10px] font-medium text-[var(--text-secondary)]">Stock Total</p>
-                <p className="text-xs min-[400px]:text-sm sm:text-base font-bold tabular-nums tracking-tight text-[var(--text-primary)] mt-0.5 truncate">
-                  {inventoryStats.totalStock} uds
-                </p>
+                {loading ? (
+                  <div className="mx-auto h-4 w-12 rounded bg-black/5 dark:bg-white/10 animate-pulse mt-1" />
+                ) : (
+                  <p className="text-xs min-[400px]:text-sm sm:text-base font-bold tabular-nums tracking-tight text-[var(--text-primary)] mt-0.5 truncate">
+                    {inventoryStats.totalStock} uds
+                  </p>
+                )}
               </div>
               <div className="rounded-xl bg-[var(--bg-elevated)] p-2 border border-[var(--border-color)] min-w-0">
                 <p className="text-[10px] font-medium text-[var(--text-secondary)]">Inversión Costo</p>
-                <p className="text-xs min-[400px]:text-sm sm:text-base font-bold tabular-nums tracking-tight text-[#ff9500] mt-0.5 truncate">
-                  {formatCOP(inventoryStats.totalCost)}
-                </p>
+                {loading ? (
+                  <div className="mx-auto h-4 w-16 rounded bg-black/5 dark:bg-white/10 animate-pulse mt-1" />
+                ) : (
+                  <p className="text-xs min-[400px]:text-sm sm:text-base font-bold tabular-nums tracking-tight text-[#ff9500] mt-0.5 truncate">
+                    {formatCOP(inventoryStats.totalCost)}
+                  </p>
+                )}
               </div>
               <div className="rounded-xl bg-[var(--bg-elevated)] p-2 border border-[var(--border-color)] min-w-0">
                 <p className="text-[10px] font-medium text-[var(--text-secondary)]">Utilidad Potencial</p>
-                <p className="text-xs min-[400px]:text-sm sm:text-base font-bold tabular-nums tracking-tight text-[#30d158] mt-0.5 truncate">
-                  +{formatCOP(inventoryStats.potentialProfit)}
-                </p>
+                {loading ? (
+                  <div className="mx-auto h-4 w-16 rounded bg-black/5 dark:bg-white/10 animate-pulse mt-1" />
+                ) : (
+                  <p className="text-xs min-[400px]:text-sm sm:text-base font-bold tabular-nums tracking-tight text-[#30d158] mt-0.5 truncate">
+                    +{formatCOP(inventoryStats.potentialProfit)}
+                  </p>
+                )}
               </div>
             </div>
           </section>
@@ -149,10 +162,36 @@ export default function InventoryView({ onOpenSuppliers: _onOpenSuppliers }: Inv
 
         {/* 4. Listado de Tarjetas de Productos con Grilla Responsiva y Espaciado Seguro */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-3 pb-32">
-          {filteredProducts.length === 0 ? (
-            <div className="col-span-full rounded-3xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-10 text-center shadow-sm">
-              <p className="text-sm font-medium text-[var(--text-secondary)]">
-                No se encontraron productos que coincidan con la búsqueda o categoría.
+          {loading ? (
+            Array.from({ length: 6 }).map((_, idx) => (
+              <div
+                key={`inv-skeleton-${idx}`}
+                className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-4 shadow-sm animate-pulse flex flex-col justify-between h-40"
+              >
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="h-4 w-24 rounded-full bg-black/5 dark:bg-white/10" />
+                    <div className="h-5 w-16 rounded-full bg-black/5 dark:bg-white/10" />
+                  </div>
+                  <div className="h-5 w-4/5 rounded-lg bg-black/5 dark:bg-white/10" />
+                  <div className="h-3 w-1/3 rounded bg-black/5 dark:bg-white/10" />
+                </div>
+                <div className="flex items-center justify-between pt-3 border-t border-[var(--border-color)]">
+                  <div className="h-6 w-28 rounded-lg bg-black/5 dark:bg-white/10" />
+                  <div className="h-7 w-20 rounded-xl bg-black/5 dark:bg-white/10" />
+                </div>
+              </div>
+            ))
+          ) : filteredProducts.length === 0 ? (
+            <div className="col-span-full rounded-3xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-8 sm:p-10 text-center shadow-sm select-none animate-in fade-in duration-150">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#007aff]/10 text-[#007aff] dark:text-[#0a84ff] mb-3">
+                <Search size={26} />
+              </div>
+              <h4 className="text-base font-bold text-[var(--text-primary)]">
+                Catálogo sin resultados
+              </h4>
+              <p className="mt-1 text-xs sm:text-sm font-medium text-[var(--text-secondary)] max-w-sm mx-auto">
+                No se encontraron productos que coincidan con la búsqueda o la categoría activa.
               </p>
               <button
                 type="button"
@@ -160,7 +199,7 @@ export default function InventoryView({ onOpenSuppliers: _onOpenSuppliers }: Inv
                   setQuery("");
                   setSelectedCategory("Todos");
                 }}
-                className="mt-4 inline-flex items-center justify-center rounded-xl bg-[#007aff] px-4 py-2 text-xs font-bold text-white shadow-sm"
+                className="mt-4 inline-flex items-center justify-center rounded-xl bg-[#007aff] px-4 py-2 text-xs font-bold text-white shadow-sm active:scale-95 transition-transform"
               >
                 Restablecer filtros
               </button>
@@ -183,8 +222,8 @@ export default function InventoryView({ onOpenSuppliers: _onOpenSuppliers }: Inv
               return (
                 <ProductCard
                   key={product.id}
-                  product={product}
                   mode="inventory"
+                  product={product}
                   onSelectProduct={setSelectedProduct}
                   supplierColors={supplierColors}
                   showCosts={showCosts}

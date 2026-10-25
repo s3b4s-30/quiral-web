@@ -20,9 +20,9 @@ Este documento define la arquitectura visual, los estándares de experiencia de 
 - **Proporción de Safe Area Superior:** Utiliza estrictamente `calc(env(safe-area-inset-top, 0px) + 0.625rem)`. No forzar mínimos artificiales (`max(..., 44px)`) que generen espacios vacíos en navegadores web.
 - **Gestos Touch (*Swipe-to-Dismiss*):** Deslizamiento vertical hacia abajo con inercia elástica nativa (`cubic-bezier(0.32, 0.72, 0, 1)`). Los gestos excluyen elementos interactivos (`button`, `input`, `select`, `a`) para permitir pulsaciones inmediatas sin latencia.
 
-### C. Scroll y Protocolo de Espaciado Anti-Colisión (`pb-32`)
+### C. Scroll y Protocolo de Espaciado Anti-Colisión (`pb-32` y `pt-16`)
 - **Scroll Independiente:** Cada vista o modal gestiona su desplazamiento vertical exclusivo con `overflow-y-auto overscroll-contain` e inercia táctil `-webkit-overflow-scrolling: touch`.
-- **Desfase de Cabecera:** `.quiral-scroll-container` inicia debajo de la barra superior mediante `padding-top: var(--quiral-header-offset)`.
+- **Desfase de Cabecera y Margen Superior Seguro (`pt-16`):** `.quiral-scroll-container` implementa `padding-top: max(4rem, var(--quiral-header-offset))`. El 100% de las vistas principales (`SummaryView.tsx`, `PosView.tsx`, `InventoryView.tsx`, `HistoryView.tsx`) aplican `pt-16` en sus contenedores de scroll, y los modales (`ModalSheet.tsx`, `PurgeConfirmModal.tsx`, `AuthScreen.tsx`) aplican `pt-16` en su envoltura para garantizar 64px de resguardo anti-colisión contra notch y status bar de iOS.
 - **Aislamiento y Bloqueo:** Al abrir un modal, se bloquea el scroll de `document.body` (`overflow: hidden; touch-action: none;`) y se restaura limpiamente al desmontar el componente.
 - **Espaciado Inferior en Vistas Móviles:**
   - **Vistas Estándar (`SummaryView`, `InventoryView`, `HistoryView`):** Aplicar obligatoriamente `pb-32` (8rem) en el contenedor principal de scroll para garantizar que el último elemento sea visible por encima de la `Navbar` y del `FloatingCartFAB`.
@@ -94,7 +94,11 @@ Queda formalmente prohibida la reintroducción de los siguientes elementos, patr
 | **Protocolo de Traducción Google Stitch -> Quiral** | **Confirmada** | 2026-10-25 | Mapeo obligatorio de tokens de Stitch a variables Dual OLED, escala elástica y `pb-32`. |
 | **Erradicación de `backdrop-blur` en modales y barras flotantes** | **Confirmada** | 2026-10-25 | `CartSummaryBar`, `ModalSheet`, `TopMenu`, `AuthScreen`, `PurgeConfirmModal` migrados a fondos sólidos OLED `bg-[var(--bg-elevated)]` y capas opacas `bg-black/60`. |
 | **Blindaje numérico elástico en modales de cierre y métricas** | **Confirmada** | 2026-10-25 | `CycleClosingModal` y `SalesPerformanceModal` adaptados con tokens de borde y `.tabular-nums` elástico anti-desborde. |
-| **Estados vacíos nativos Apple HIG** | **Confirmada** | 2026-10-25 | Añadidos contenedores consistentes de resultado vacío con acción de reseteo en `PosView` e `InventoryView`. |
+| **Estados vacíos nativos Apple HIG** | **Confirmada** | 2026-10-25 | Añadidos contenedores consistentes de resultado vacío con iconografía nativa (#007aff/10), jerarquía visual y acción de reseteo en las 4 vistas principales (`PosView`, `InventoryView`, `HistoryView`, `SummaryView`). |
+| **Purga de componentes de compatibilidad huérfanos** | **Confirmada** | 2026-10-25 | Eliminación de archivos re-export redundantes (`CartBar.tsx`, `CheckoutModal.tsx`) unificando referencias directas en `CartSummaryBar.tsx` y `CheckoutSheet.tsx`. |
+| **Unificación total de tokens OLED en modales de perfil** | **Confirmada** | 2026-10-25 | Erradicación definitiva de clases residuales `zinc` en `ProfileSecurityModal.tsx`, estandarizando `var(--bg-elevated)` y `var(--border-color)`. |
+| **Margen superior seguro `pt-16` en vistas y modales** | **Confirmada** | 2026-10-25 | Integración de `padding-top: max(4rem, var(--quiral-header-offset))` y `pt-16` en las 4 vistas principales y modales para blindaje total contra notch y status bar de iOS. |
+| **Margen superior y contención de altura en `ModalSheet` (`mt-12`)** | **Confirmada** | 2026-10-25 | Aplicación de `mt-12 sm:mt-0` y `max-h-[calc(100dvh-3.5rem)]` en `ModalSheet.tsx` para evitar que las hojas modales queden pegadas al borde superior en móviles, revelando limpiamente la píldora de arrastre y el título. |
 
 ---
 

@@ -3,7 +3,7 @@
 **Versión:** 1.0.1 — Producción / Release Candidate  
 **Stack Principal:** React 18 · TypeScript Estricto · Vite 6 · Tailwind CSS 3 · Supabase (PostgreSQL 15+)  
 **Filosofía Visual:** Apple Human Interface Guidelines (HIG) & Dual OLED Nativo  
-**Documentos Complementarios:** [`AGENTS.md`](./AGENTS.md) (Gobernanza) · [`DESIGN_GUIDELINES.md`](./DESIGN_GUIDELINES.md) (Sistema de Diseño) · [`SKILLS_INDEX.md`](./.agents/SKILLS_INDEX.md) (Ecosistema de Habilidades)
+**Documentos Complementarios:** [`AGENTS.md`](./AGENTS.md) (Gobernanza) · [`DESIGN_GUIDELINES.md`](./DESIGN_GUIDELINES.md) (Sistema de Diseño) · [`PRODUCT.md`](./PRODUCT.md) (Contexto de Producto) · [`DESIGN.md`](./DESIGN.md) (Tokens y Especificaciones) · [`SKILLS_INDEX.md`](./.agents/SKILLS_INDEX.md) (Ecosistema de Habilidades)
 
 ---
 
@@ -26,6 +26,7 @@ Quiral POS es una Progressive Web App (PWA) de alto rendimiento diseñada para l
 │         Caché & Optimismo         │      Sincronización en Vivo        │
 │  - LocalStorage Sesión & Demo     │  - Canales Realtime postgres_changes│
 │  - Transacciones Atómicas RPC     │  - Resync Automático en Re-auth   │
+│  - syncUserSession Inmediato      │  - Supabase onAuthStateChange      │
 └───────────────────────────────────┴────────────────────────────────────┘
                                      │ (HTTPS / WSS)
                                      ▼
@@ -46,6 +47,7 @@ La interfaz utiliza una estrategia adaptativa limpia gobernada en `App.tsx` que 
 1. **Orquestador Raíz (`AppInner` en `src/App.tsx`)**:
    - Coordina la autenticación mediante `AuthScreen` y el perfil del usuario.
    - Aplica el tema visual dual OLED (`dark` / `light` / `auto`) y sincroniza el meta tag `theme-color` de iOS Safari y standalone PWA.
+   - Aterrizaje inmediato en mostrador: por defecto, la sesión activa se posiciona en la pestaña de punto de venta (`"sell"` / `PosView`).
    - Gobierna la navegación entre pestañas: `inventory`, `sell`, `history` y `summary`.
    - Controla el desmontaje dinámico de la `Navbar` y `FloatingCartFAB` cuando existen modales activos (`!hasActiveModal`) para evitar colisiones de contexto de apilamiento (*stacking context*).
 
@@ -100,10 +102,16 @@ Cada operación en el cliente incluye `.eq("store_id", storeId)`, garantizando u
 
 ---
 
-## 4. Estado Global, Sincronización Realtime y Mutaciones
+## 4. Estado Global, Sincronización Realtime y Autenticación Instantánea
 
 ### Fuente Única de Verdad
 La base de datos PostgreSQL en Supabase es la **única fuente de verdad** persistente. El estado de React en `InventoryContext` actúa como espejo reactivo optimista.
+
+### Sincronización Inmediata de Sesión (`syncUserSession`)
+Para eliminar retrasos o recargas manuales (F5) tras iniciar sesión o registrarse:
+1. `InventoryContext` expone `syncUserSession`, una rutina memorizada con `useCallback` que inspecciona `supabase.auth.getSession()`, extrae la membresía de tienda desde `store_members` con reintento automático y fallback resiliente sobre `user.user_metadata`, y puebla inmediatamente el estado reactivo `userProfile`.
+2. El manejador de autenticación en `AuthScreen.tsx` aguarda `await onAuthSuccess()` al completar el login o registro antes de desmontarse, permitiendo una transición de vista inmediata sin latencia ni recarga de ventana.
+3. El listener de eventos de Supabase (`onAuthStateChange`) invoca `syncUserSession` ante eventos `SIGNED_IN`, `INITIAL_SESSION`, `TOKEN_REFRESHED` y `USER_UPDATED`, garantizando persistencia y recuperación automática tras desconexiones de red.
 
 ### Sincronización Realtime Multicanal
 El canal `realtime:store:${storeId}` se suscribe a eventos `postgres_changes` filtrados por `store_id=eq.${storeId}` en 4 tablas:
@@ -163,28 +171,38 @@ La presencia simultánea de la barra de navegación flotante (`Navbar`), el bot�
 
 ---
 
-## 8. Pipeline de Compilación y Optimización de Paquetes
+## 8. Pipeline de Compilación, Optimización y Servidor de Red Local
 
-La compilación utiliza Vite 6 con Rollup optimizado mediante particionamiento manual de módulos (`manualChunks`) en `vite.config.js` y `vite.config.ts`:
+### Configuración de Vite (`vite.config.ts`)
+La compilación utiliza Vite 6 con Rollup optimizado mediante particionamiento manual de módulos (`manualChunks`) y exposición de red local para pruebas en iOS WebKit:
 
-```javascript
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+```typescript
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
+  server: {
+    host: true,
+    port: 5173,
+  },
+  preview: {
+    host: true,
+    port: 4173,
+  },
   build: {
     rollupOptions: {
       output: {
         manualChunks: {
-          'vendor-react': ['react', 'react-dom'],
-          'vendor-supabase': ['@supabase/supabase-js'],
-          'vendor-icons': ['lucide-react']
-        }
-      }
-    }
-  }
-})
+          "vendor-react": ["react", "react-dom"],
+          "vendor-supabase": ["@supabase/supabase-js"],
+          "vendor-icons": ["lucide-react"],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 600,
+  },
+});
 ```
 
 ### Distribución de Chunks en Producción
@@ -198,11 +216,12 @@ export default defineConfig({
 
 ## 9. Runbooks Operativos
 
-### Desarrollo Local
+### Desarrollo Local y Pruebas en Red Móvil (iOS Safari)
 ```bash
 npm install
 npm run dev
 ```
+Al iniciar con `host: true`, la terminal expondrá la URL local (`http://localhost:5173`) y la dirección de red (ej. `http://192.168.1.37:5173`), accesible directamente desde Safari en cualquier iPhone o iPad conectado a la misma red WiFi.
 
 ### Verificación de Tipos TypeScript Estricto
 ```bash
@@ -216,7 +235,38 @@ npm run build
 
 ---
 
-## 10. Limitaciones Técnicas y Recomendaciones de Despliegue
+## 10. Seguridad, Secretos y Directrices de Despliegue
 
-1. **Modo Demo Público:** El bypass de credenciales `30/30` es para evaluación comercial rápida; debe deshabilitarse en despliegues monotienda de producción cerrada mediante variable de entorno.
-2. **Validación en Dispositivos iOS Físicos:** Se recomienda verificar visualmente la distancia con la barra de inicio (*Home Indicator*) en modelos con Dynamic Island o Notch para validar que la safe area coincida exactamente con las directrices HIG.
+1. **Blindaje de Secretos en Control de Versiones:**
+   - Todo archivo `.env` y variantes locales (`.env.local`, `.env.*`) están excluidos permanentemente en `.gitignore` y desindexados del repositorio.
+   - El cliente opera exclusivamente con variables `VITE_*` públicas. Nunca debe inyectarse la `SUPABASE_SERVICE_ROLE_KEY` en el bundle del cliente.
+2. **Aislamiento RLS en Producción:**
+   - Todas las consultas y mutaciones se restringen a nivel de base de datos con la directiva `is_store_member(store_id)`.
+3. **Modo Demo Público:** El acceso directo de pruebas (`30`/`30`) está provisto para evaluación comercial y demostraciones locales; se encuentra aislado lógicamente y debe ser deshabilitado en implementaciones cerradas mediante flag de entorno.
+4. **Validación en Dispositivos iOS Físicos:** Se recomienda verificar visualmente la distancia con la barra de inicio (*Home Indicator*) en modelos con Dynamic Island o Notch para validar que la safe area coincida exactamente con las directrices HIG.
+
+---
+
+## 11. Compendio Normativo y Directivas de Invarianza para Nuevos Agentes de IA
+
+Para preservar la pureza arquitectónica y la fiabilidad de producción en futuras iteraciones autónomas, todo agente de IA o desarrollador debe respetar los siguientes principios invariantes del sistema:
+
+### 1. Invarianza Transaccional y Lógica de Inventario
+- **Determinismo Multi-Lote:** El stock consolidado de cualquier producto se computa exclusivamente como la sumatoria de sus lotes activos (`b.stock`). No se permite la existencia de campos de stock desincronizados del detalle de lotes.
+- **Inmutabilidad de Costos en Ventas:** Cada línea de venta (`SaleItem`) debe conservar una instantánea inmutable del costo unitario del lote asociado al momento de completarse (`unitCostSnapshot`). El cálculo del margen de utilidad bruta y neta depende críticamente de esta instantánea histórica.
+- **Aislamiento de Ventas RPC:** La mutación de inventario y el registro de ventas deben invocarse a través del procedimiento almacenado `complete_sale` con nivel `SERIALIZABLE` en Supabase, garantizando que transacciones simultáneas no originen saldos negativos ni carreras críticas (*race conditions*).
+
+### 2. Estándares Visuales y Rendimiento Nativo en iOS / PWA
+- **Ergonomía Dual OLED sin Blur:** Se prohíbe el uso de `backdrop-blur` en cabeceras o áreas sujetas a desplazamiento continuo en WebKit Safari móvil. Todas las superficies flotantes y de encabezado deben renderizarse con fondos sólidos OLED (`var(--bg-elevated)`).
+- **Márgenes de Resguardo Anti-Colisión:** Toda vista con desplazamiento debe implementar un espaciado inferior mínimo de `pb-32` (`8rem` / 128px) en estado estándar, escalar a `pb-44` (`11rem` / 176px) en vistas con presencia de la barra o botón flotante del carrito, y garantizar un margen superior seguro de al menos `pt-16` (`padding-top: max(4rem, var(--quiral-header-offset))`) en vistas y modales para proteger contra el notch y Dynamic Island de iOS.
+- **Formateo Monetario Universal y Tipografía Tabular:** Toda expresión de moneda nacional debe emplear el formateador universal `formatCOP()` y acompañarse indefectiblemente de la clase `.tabular-nums` para evitar oscilaciones de anchura tipográfica en la interfaz.
+- **Skeletons de Carga Asíncrona:** Mientras el estado global `loading === true` esté resolviendo datos desde Supabase o la caché local, se prohíbe el renderizado prematuro de cifras en `$0` o estados vacíos ("Sin productos disponibles"). Las vistas deben renderizar obligatoriamente tarjetas esqueleto animadas (`animate-pulse`) que preserven las dimensiones físicas exactas de la interfaz.
+
+### 3. Integridad Multi-Tenant y Seguridad
+- **Filtro de Tienda Obligatorio:** Ninguna operación contra Supabase puede omitir el calificador `.eq("store_id", storeId)`. Todas las tablas del esquema público se encuentran selladas mediante políticas RLS sustentadas en `is_store_member`.
+- **Aislamiento del Modo Demo:** Las mutaciones ejecutadas bajo la sesión de evaluación `demo30@quiral.xyz` se gestionan en memoria y caché local sin impactar las tablas de producción de los tenants reales.
+- **Anon Key Exclusiva:** El cliente web jamás debe interactuar con credenciales de superusuario o claves de rol de servicio (`service_role`).
+
+### 4. Gobernanza del Árbol de Componentes
+- **Desmontaje Preventivo de Navegación Flotante (`!hasActiveModal`):** La barra inferior flotante (`Navbar`) y el botón flotante del carrito (`FloatingCartFAB`) deben desmontarse de manera reactiva e incondicional cuando cualquier modal u hoja (`ModalSheet`) esté activo, previniendo fallas de apilamiento visual (*z-index conflicts*) o intercepciones táctiles indeseadas.
+- **Unificación de Modales sobre `ModalSheet` y Aislamiento de Scroll:** Todo modal secundario debe derivarse de `ModalSheet.tsx`. Al abrirse, se activa la clase `body.modal-open` que impone `overflow: hidden !important; touch-action: none !important; pointer-events: none !important;` en `.quiral-scroll-container` y el fondo, garantizando que el scroll vertical ocurra exclusivamente en el modal activo sin fugas táctiles hacia la vista inferior.

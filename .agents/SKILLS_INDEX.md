@@ -3,7 +3,7 @@
 **Proyecto:** Quiral POS (PWA v1.0.1)  
 **Entorno de Agentes:** Google Antigravity (AGY)  
 **Ubicación:** `.agents/skills/`  
-**Documentos Rectores:** [`AGENTS.md`](../AGENTS.md) · [`DESIGN_GUIDELINES.md`](../DESIGN_GUIDELINES.md) · [`QUIRAL_V1.0.1_DOCS.md`](../QUIRAL_V1.0.1_DOCS.md)
+**Documentos Rectores:** [`AGENTS.md`](../AGENTS.md) · [`DESIGN_GUIDELINES.md`](../DESIGN_GUIDELINES.md) · [`QUIRAL_V1.0.1_DOCS.md`](../QUIRAL_V1.0.1_DOCS.md) · [`PRODUCT.md`](../PRODUCT.md) · [`DESIGN.md`](../DESIGN.md)
 
 ---
 
@@ -23,15 +23,16 @@ El ecosistema se organiza en **dos niveles arquitectónicos**:
 │  3. google-stitch       -> Conexión MCP y Pipeline Google Stitch       │
 │  4. stitch-design       -> Traducción Visual Stitch -> Tailwind OLED   │
 ├────────────────────────────────────────────────────────────────────────┤
-│ TIER 2: INTELIGENCIA TRANSVERSAL (Diseño, Creatividad y Seguridad)     │
-│  5. ui-ux-pro-max       -> Inteligencia de Diseño UI/UX Multidisciplina│
-│  6. ui-styling          -> shadcn/ui, Radix UI & Primitivas Tailwind   │
-│  7. security-audit      -> Auditoría de Vulnerabilidades y RLS Supabase│
-│  8. design-system       -> Arquitectura de Tokens en 3 Capas           │
-│  9. design              -> Hub Integral de Diseño, CIP, Logo e Iconos  │
-│ 10. brand               -> Identidad de Marca, Voz y Directrices       │
-│ 11. banner-design       -> Banners y Creativos Multiformato            │
-│ 12. slides              -> Presentaciones HTML Estratégicas (Chart.js) │
+│ TIER 2: INTELIGENCIA TRANSVERSAL Y CRAFT (Diseño, Hooks y Seguridad)   │
+│  5. impeccable          -> Craft UI/UX, Auditoría Automática y Hooks   │
+│  6. ui-ux-pro-max       -> Inteligencia de Diseño UI/UX Multidisciplina│
+│  7. ui-styling          -> shadcn/ui, Radix UI & Primitivas Tailwind   │
+│  8. security-audit      -> Auditoría de Vulnerabilidades y RLS Supabase│
+│  9. design-system       -> Arquitectura de Tokens en 3 Capas           │
+│ 10. design              -> Hub Integral de Diseño, CIP, Logo e Iconos  │
+│ 11. brand               -> Identidad de Marca, Voz y Directrices       │
+│ 12. banner-design       -> Banners y Creativos Multiformato            │
+│ 13. slides              -> Presentaciones HTML Estratégicas (Chart.js) │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -45,6 +46,7 @@ El ecosistema se organiza en **dos niveles arquitectónicos**:
 | [`quiral-pos-engine`](./skills/quiral-pos-engine/SKILL.md) | **Tier 1** | Estado global (`InventoryContext`), stock multi-lote determinista y RPCs de venta en Supabase. | Modificación de lógica comercial, balanceo de stock maestro, transacciones `complete_sale` o formatos COP. | Automática en lógica de negocio / Lectura directa. |
 | [`google-stitch`](./skills/google-stitch/SKILL.md) | **Tier 1** | Conexión con Stitch MCP Server y pipeline de conversión de prototipos Stitch. | Trabajo con herramientas MCP de Stitch, consulta de proyectos o importación de pantallas exportadas. | Por demanda ante flujos con Google Stitch / MCP. |
 | [`stitch-design`](./skills/stitch-design/SKILL.md) | **Tier 1** | Mapeo visual de componentes Stitch a Tailwind Dual OLED, contención de cifras y `pb-32`. | Adaptación visual de tarjetas, métricas, dashboards o controles exportados desde Stitch a Quiral. | Por demanda al diseñar o traducir componentes de Stitch. |
+| [`impeccable`](./skills/impeccable/SKILL.md) | **Tier 2** | Motor de craft UI/UX, auditoría en tiempo real con hooks post-escritura y contexto en `PRODUCT.md` / `DESIGN.md`. | Auditoría continua de interfaz, verificación de anti-patrones, `detect`, `/impeccable init`, `/impeccable hooks on`. | Automática vía hooks y manual con `/impeccable`. |
 | [`ui-ux-pro-max`](./skills/ui-ux-pro-max/SKILL.md) | **Tier 2** | Base de conocimiento local UI/UX: 79 estilos, 192 paletas, 74 tipografías, 119 guías UX. | Auditorías profundas de UX, rediseño de flujos, problemas de accesibilidad (a11y) o dirección visual. | Por demanda mediante scripts Python o guías de referencia. |
 | [`ui-styling`](./skills/ui-styling/SKILL.md) | **Tier 2** | Implementación de componentes accesibles tipo shadcn/ui con Radix UI y Tailwind CSS. | Creación de componentes atómicos complejos (dialogs, dropdowns, popovers, command palettes). | Por demanda durante la maquetación de componentes atómicos. |
 | [`security-audit`](./skills/security-audit/SKILL.md) | **Tier 2** | Auditoría defensiva de vulnerabilidades en código, APIs, RLS de PostgreSQL y secretos. | Revisión de políticas RLS en Supabase, verificación de anon keys vs service keys o pentesting. | Modo *Guidance* o *Full Audit* ante petición explícita. |
@@ -59,8 +61,8 @@ El ecosistema se organiza en **dos niveles arquitectónicos**:
 ## 3. Protocolos de Invocación y Uso para Agentes
 
 ### Protocolo 1: Modificación de Vistas o Componentes de UI
-1. **Activar:** [`quiral-ui-hig`](./skills/quiral-ui-hig/SKILL.md).
-2. **Consultar:** [`DESIGN_GUIDELINES.md`](../DESIGN_GUIDELINES.md) para verificar el *Historial de Descarte*.
+1. **Activar:** [`quiral-ui-hig`](./skills/quiral-ui-hig/SKILL.md) e [`impeccable`](./skills/impeccable/SKILL.md).
+2. **Consultar:** [`DESIGN_GUIDELINES.md`](../DESIGN_GUIDELINES.md) y [`DESIGN.md`](../DESIGN.md) para verificar el *Historial de Descarte* y la rampa de tokens.
 3. **Aplicar Estándares:**
    - Cabeceras 100% sólidas sin blur.
    - Botón de acción en el `footer` de `ModalSheet` con safe-areas.
@@ -69,7 +71,7 @@ El ecosistema se organiza en **dos niveles arquitectónicos**:
 
 ### Protocolo 2: Modificación de Inventario, Carrito o Supabase
 1. **Activar:** [`quiral-pos-engine`](./skills/quiral-pos-engine/SKILL.md).
-2. **Consultar:** [`QUIRAL_V1.0.1_DOCS.md`](../QUIRAL_V1.0.1_DOCS.md) para verificar RLS y el RPC `complete_sale`.
+2. **Consultar:** [`QUIRAL_V1.0.1_DOCS.md`](../QUIRAL_V1.0.1_DOCS.md) y [`PRODUCT.md`](../PRODUCT.md) para verificar RLS y el RPC `complete_sale`.
 3. **Aplicar Estándares:**
    - Distribución determinista de lotes en `adjustMasterStock` (sin saldos negativos).
    - Validaciones previas de carrito ($0 \le \text{total} \le \text{subtotal}$).

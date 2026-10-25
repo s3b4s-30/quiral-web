@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import type { Session } from "@supabase/supabase-js";
 import { getStoreMembership, printSecurityWarning, signOutUser } from "../lib/authService";
 import { DEMO_STORE_ID, generateDemoSeed } from "../lib/demoSeed";
 import { supabase } from "../lib/supabase";
@@ -102,7 +103,6 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
     if (isDemo) {
       printSecurityWarning();
       try {
-        // Intentar invocar seed_demo_store en Supabase
         await supabase.rpc("seed_demo_store", { p_store_id: activeStore });
       } catch (err) {
         console.warn("Aviso al sembrar demo en backend:", err);
@@ -122,7 +122,6 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       const loadedSales = salesRes.data?.map((r) => r.data as Sale) ?? [];
       const loadedClosures = closuresRes.data?.map((r) => r.data as Closure) ?? [];
 
-      // Si es demo y el servidor está vacío o sin tablas, usar el generador de prueba completo (4 meses)
       if (isDemo && loadedProducts.length === 0) {
         const demoData = generateDemoSeed();
         setSuppliers(demoData.suppliers);
@@ -154,57 +153,98 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
     }
   }, [report]);
 
+  // Sincronización atómica e inmediata de sesión y perfil de tienda
+  const syncUserSession = useCallback(
+    async (providedSession?: Session | null) => {
+      setLoading(true);
+      try {
+        const hasDemoBypass = localStorage.getItem("quiral_demo_bypass") === "true";
+
+        if (hasDemoBypass) {
+          printSecurityWarning();
+          setIsDemoUser(true);
+          const demoProfile: UserProfile = {
+            id: "demo-user-30",
+            email: "demo30@quiral.xyz",
+            username: "30",
+            storeId: DEMO_STORE_ID,
+            storeName: "Quiral Demo 30",
+            role: "owner",
+            isDemoUser: true,
+          };
+          setUserProfile(demoProfile);
+          setStoreId(DEMO_STORE_ID);
+          await loadData(DEMO_STORE_ID, true);
+          return;
+        }
+
+        let session = providedSession;
+        if (session === undefined) {
+          const { data: sessionData } = await supabase.auth.getSession();
+          session = sessionData?.session ?? null;
+        }
+
+        if (session?.user) {
+          let membership = await getStoreMembership(session.user.id);
+          if (!membership) {
+            // Reintento rápido por si hay un leve retraso en la inserción/propagación de RLS
+            await new Promise((resolve) => setTimeout(resolve, 300));
+            membership = await getStoreMembership(session.user.id);
+          }
+
+          if (membership) {
+            const profile: UserProfile = {
+              id: session.user.id,
+              email: session.user.email || "",
+              username: membership.username,
+              storeId: membership.storeId,
+              storeName: membership.storeName,
+              role: membership.role,
+              isDemoUser: false,
+            };
+            setUserProfile(profile);
+            setStoreId(membership.storeId);
+            setIsDemoUser(false);
+            await loadData(membership.storeId, false);
+          } else {
+            // Fallback usando user_metadata de auth.users si no se obtuvo fila en store_members
+            const meta = session.user.user_metadata || {};
+            const fallbackStoreId = (meta.store_id as string) || DEMO_STORE_ID;
+            const fallbackStoreName = (meta.store_name as string) || "Mi tienda";
+            const fallbackUsername =
+              (meta.username as string) || session.user.email?.split("@")[0] || "Usuario";
+
+            const profile: UserProfile = {
+              id: session.user.id,
+              email: session.user.email || "",
+              username: fallbackUsername,
+              storeId: fallbackStoreId,
+              storeName: fallbackStoreName,
+              role: "owner",
+              isDemoUser: false,
+            };
+            setUserProfile(profile);
+            setStoreId(fallbackStoreId);
+            setIsDemoUser(false);
+            await loadData(fallbackStoreId, false);
+          }
+        } else {
+          setUserProfile(null);
+          setStoreId(null);
+          setIsDemoUser(false);
+        }
+      } catch (err) {
+        console.error("Error sincronizando sesión:", err);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [loadData]
+  );
+
   // Manejo de sesión y suscripción en tiempo real
   useEffect(() => {
-    const setupAuthAndStore = async () => {
-      const hasDemoBypass = localStorage.getItem("quiral_demo_bypass") === "true";
-
-      if (hasDemoBypass) {
-        printSecurityWarning();
-        setIsDemoUser(true);
-        const demoProfile: UserProfile = {
-          id: "demo-user-30",
-          email: "demo30@quiral.xyz",
-          username: "30",
-          storeId: DEMO_STORE_ID,
-          storeName: "Quiral Demo 30",
-          role: "owner",
-          isDemoUser: true,
-        };
-        setUserProfile(demoProfile);
-        setStoreId(DEMO_STORE_ID);
-        await loadData(DEMO_STORE_ID, true);
-        return;
-      }
-
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (sessionData?.session?.user) {
-        const membership = await getStoreMembership(sessionData.session.user.id);
-        if (membership) {
-          const profile: UserProfile = {
-            id: sessionData.session.user.id,
-            email: sessionData.session.user.email || "",
-            username: membership.username,
-            storeId: membership.storeId,
-            storeName: membership.storeName,
-            role: membership.role,
-            isDemoUser: false,
-          };
-          setUserProfile(profile);
-          setStoreId(membership.storeId);
-          setIsDemoUser(false);
-          await loadData(membership.storeId, false);
-        } else {
-          setLoading(false);
-        }
-      } else {
-        setLoading(false);
-        setUserProfile(null);
-        setStoreId(null);
-      }
-    };
-
-    void setupAuthAndStore();
+    void syncUserSession();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_OUT") {
@@ -220,39 +260,14 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      if (session?.user) {
-        const hasDemo = localStorage.getItem("quiral_demo_bypass") === "true";
-        if (hasDemo) {
-          printSecurityWarning();
-          setIsDemoUser(true);
-          const demoProfile: UserProfile = {
-            id: session.user.id,
-            email: session.user.email || "demo30@quiral.xyz",
-            username: "30",
-            storeId: DEMO_STORE_ID,
-            storeName: "Quiral Demo 30",
-            role: "owner",
-            isDemoUser: true,
-          };
-          setUserProfile(demoProfile);
-          setStoreId(DEMO_STORE_ID);
-          void loadData(DEMO_STORE_ID, true);
-        } else {
-          const membership = await getStoreMembership(session.user.id);
-          if (membership) {
-            setUserProfile({
-              id: session.user.id,
-              email: session.user.email || "",
-              username: membership.username,
-              storeId: membership.storeId,
-              storeName: membership.storeName,
-              role: membership.role,
-              isDemoUser: false,
-            });
-            setStoreId(membership.storeId);
-            setIsDemoUser(false);
-            void loadData(membership.storeId, false);
-          }
+      if (
+        event === "SIGNED_IN" ||
+        event === "TOKEN_REFRESHED" ||
+        event === "USER_UPDATED" ||
+        event === "INITIAL_SESSION"
+      ) {
+        if (session) {
+          await syncUserSession(session);
         }
       }
     });
@@ -260,7 +275,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [loadData]);
+  }, [syncUserSession]);
 
   // Suscripción Realtime a cambios concurrentes de la tienda activa
   useEffect(() => {
@@ -371,7 +386,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
   const persist = useCallback(
     async (table: string, entity: { id: string }) => {
       if (!storeId) return;
-      if (isDemoUser) return; // En demo local no bloqueamos con errores de BD
+      if (isDemoUser) return;
       const { error: err } = await supabase.from(table).upsert({
         store_id: storeId,
         id: entity.id,
@@ -679,11 +694,13 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
     setClosures([]);
   };
 
-  const refreshData = async () => {
+  const refreshData = useCallback(async () => {
     if (storeId) {
       await loadData(storeId, isDemoUser);
+    } else {
+      await syncUserSession();
     }
-  };
+  }, [storeId, isDemoUser, loadData, syncUserSession]);
 
   return (
     <InventoryContext.Provider

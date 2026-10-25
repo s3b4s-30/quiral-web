@@ -92,6 +92,23 @@ a {
   scrollbar-width: none;
 }
 
+/* Bloqueo estricto del scroll de la vista inferior al abrir cualquier modal */
+body.modal-open,
+body.modal-open #root,
+body.modal-open .quiral-scroll-container {
+  overflow: hidden !important;
+  overflow-y: hidden !important;
+  overscroll-behavior: contain !important;
+  touch-action: none !important;
+  pointer-events: none !important;
+}
+
+body.modal-open [role="dialog"],
+body.modal-open [aria-modal="true"],
+body.modal-open .modal-sheet-dialog {
+  pointer-events: auto !important;
+}
+
 .liquid-glass-surface {
   border: 1px solid var(--border-color);
   background: var(--bg-elevated);
@@ -216,7 +233,7 @@ a {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
-  padding-top: var(--quiral-header-offset);
+  padding-top: max(4rem, var(--quiral-header-offset));
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 5.5rem);
 }
 

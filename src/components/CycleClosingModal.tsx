@@ -2,6 +2,7 @@ import { Check, ChevronLeft, ChevronRight, Clock } from "lucide-react";
 import React, { useMemo, useState } from "react";
 import { Closure, ClosureTopSellerTx, Product, Sale } from "../types/domain";
 import { formatCOP, formatShortDate } from "../utils/formatters";
+import { useInventory } from "../context/InventoryContext";
 import ModalSheet from "./ModalSheet";
 
 interface CycleClosingModalProps {
@@ -30,6 +31,7 @@ export default function CycleClosingModal({
   showCosts = false,
   onConfirmClose,
 }: CycleClosingModalProps) {
+  const { loading } = useInventory();
   // Rango de fechas por defecto: 14 días atrás hasta hoy
   const [startDate, setStartDate] = useState<Date>(() => new Date(Date.now() - 14 * 864e5));
   const [endDate, setEndDate] = useState<Date>(() => new Date());
@@ -239,7 +241,7 @@ export default function CycleClosingModal({
       title="Cierre de Ciclo"
       onClose={onClose}
       onStartClose={onStartClose}
-      className="max-h-[92vh]"
+
       contentClassName="p-4 space-y-4"
       footer={
         <button
@@ -436,7 +438,7 @@ export default function CycleClosingModal({
             Total Vendido
           </span>
           <p className="tabular-nums text-base min-[380px]:text-lg sm:text-xl font-extrabold text-[var(--text-primary)] tracking-tight truncate mt-1">
-            {formatCOP(rangeStats.sold)}
+            {loading ? "..." : formatCOP(rangeStats.sold)}
           </p>
         </div>
 
@@ -445,7 +447,7 @@ export default function CycleClosingModal({
             Utilidad Neta
           </span>
           <p className="tabular-nums text-base min-[380px]:text-lg sm:text-xl font-extrabold text-[#30d158] tracking-tight truncate mt-1">
-            {!showCosts ? "••••••" : `+${formatCOP(rangeStats.profit)}`}
+            {!showCosts ? "••••••" : loading ? "..." : `+${formatCOP(rangeStats.profit)}`}
           </p>
         </div>
       </div>

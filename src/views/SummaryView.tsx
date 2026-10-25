@@ -10,7 +10,7 @@ interface SummaryViewProps {
 }
 
 export default function SummaryView({ onModalStateChange }: SummaryViewProps) {
-  const { sales, products, closures, createClosure, showCosts } = useInventory();
+  const { sales, products, closures, createClosure, showCosts, loading } = useInventory();
 
   const [isPerformanceOpen, setIsPerformanceOpen] = useState(false);
   const [isClosingCycleOpen, setIsClosingCycleOpen] = useState(false);
@@ -67,41 +67,64 @@ export default function SummaryView({ onModalStateChange }: SummaryViewProps) {
   return (
     <div
       id="summary-scroll"
-      className="quiral-scroll-container transition-colors duration-75"
+      className="quiral-scroll-container pt-16 transition-colors duration-75"
     >
       <div className="mx-auto max-w-xl md:max-w-4xl lg:max-w-5xl px-4 pb-32">
         {/* 1. Dashboard Principal de Métricas (Tokens del Sistema Apple HIG) */}
-        <section className="grid grid-cols-1 min-[360px]:grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-3">
-          {/* Tarjeta Ingresos */}
-          <div className="rounded-2xl p-3.5 sm:p-4 bg-[var(--bg-elevated)] border border-[var(--border-color)] shadow-sm transition-colors duration-75 min-w-0">
-            <span className="text-[11px] sm:text-xs font-medium text-[var(--text-secondary)] block">
-              Ingresos
-            </span>
-            <p className="text-lg sm:text-xl md:text-2xl font-bold tabular-nums tracking-tight truncate text-[var(--text-primary)] mt-1">
-              {formatCOP(totals.revenue)}
-            </p>
-          </div>
+        {loading ? (
+          <section className="grid grid-cols-1 min-[360px]:grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-3">
+            <div className="rounded-2xl p-3.5 sm:p-4 bg-[var(--bg-elevated)] border border-[var(--border-color)] shadow-sm animate-pulse min-w-0">
+              <span className="text-[11px] sm:text-xs font-medium text-[var(--text-secondary)] block">
+                Ingresos
+              </span>
+              <div className="h-7 w-28 rounded-lg bg-black/5 dark:bg-white/10 mt-1.5" />
+            </div>
+            <div className="rounded-2xl p-3.5 sm:p-4 bg-[var(--bg-elevated)] border border-[var(--border-color)] shadow-sm animate-pulse min-w-0">
+              <span className="text-[11px] sm:text-xs font-medium text-[var(--text-secondary)] block">
+                Utilidad
+              </span>
+              <div className="h-7 w-24 rounded-lg bg-black/5 dark:bg-white/10 mt-1.5" />
+            </div>
+            <div className="col-span-1 min-[360px]:col-span-2 md:col-span-1 rounded-2xl p-3.5 sm:p-4 bg-[var(--bg-elevated)] border border-[var(--border-color)] shadow-sm animate-pulse min-w-0">
+              <span className="text-[11px] sm:text-xs font-medium text-[var(--text-secondary)] block">
+                Inventario
+              </span>
+              <div className="h-7 w-24 rounded-lg bg-black/5 dark:bg-white/10 mt-1.5" />
+            </div>
+          </section>
+        ) : (
+          <section className="grid grid-cols-1 min-[360px]:grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-3">
+            {/* Tarjeta Ingresos */}
+            <div className="rounded-2xl p-3.5 sm:p-4 bg-[var(--bg-elevated)] border border-[var(--border-color)] shadow-sm transition-colors duration-75 min-w-0">
+              <span className="text-[11px] sm:text-xs font-medium text-[var(--text-secondary)] block">
+                Ingresos
+              </span>
+              <p className="text-lg sm:text-xl md:text-2xl font-bold tabular-nums tracking-tight truncate text-[var(--text-primary)] mt-1">
+                {formatCOP(totals.revenue)}
+              </p>
+            </div>
 
-          {/* Tarjeta Utilidad (Con modo privacidad ojito) */}
-          <div className="rounded-2xl p-3.5 sm:p-4 bg-[var(--bg-elevated)] border border-[var(--border-color)] shadow-sm transition-colors duration-75 min-w-0">
-            <span className="text-[11px] sm:text-xs font-medium text-[var(--text-secondary)] block">
-              Utilidad
-            </span>
-            <p className="text-lg sm:text-xl md:text-2xl font-bold tabular-nums tracking-tight truncate text-emerald-600 dark:text-emerald-400 mt-1">
-              {!showCosts ? "••••••" : formatCOP(totals.profit)}
-            </p>
-          </div>
+            {/* Tarjeta Utilidad (Con modo privacidad ojito) */}
+            <div className="rounded-2xl p-3.5 sm:p-4 bg-[var(--bg-elevated)] border border-[var(--border-color)] shadow-sm transition-colors duration-75 min-w-0">
+              <span className="text-[11px] sm:text-xs font-medium text-[var(--text-secondary)] block">
+                Utilidad
+              </span>
+              <p className="text-lg sm:text-xl md:text-2xl font-bold tabular-nums tracking-tight truncate text-emerald-600 dark:text-emerald-400 mt-1">
+                {!showCosts ? "••••••" : formatCOP(totals.profit)}
+              </p>
+            </div>
 
-          {/* Tarjeta Inventario */}
-          <div className="col-span-1 min-[360px]:col-span-2 md:col-span-1 rounded-2xl p-3.5 sm:p-4 bg-[var(--bg-elevated)] border border-[var(--border-color)] shadow-sm transition-colors duration-75 min-w-0">
-            <span className="text-[11px] sm:text-xs font-medium text-[var(--text-secondary)] block">
-              Inventario
-            </span>
-            <p className="text-lg sm:text-xl md:text-2xl font-bold tabular-nums tracking-tight truncate text-amber-500 mt-1">
-              {!showCosts ? "••••••" : formatCOP(totals.stockValue)}
-            </p>
-          </div>
-        </section>
+            {/* Tarjeta Inventario */}
+            <div className="col-span-1 min-[360px]:col-span-2 md:col-span-1 rounded-2xl p-3.5 sm:p-4 bg-[var(--bg-elevated)] border border-[var(--border-color)] shadow-sm transition-colors duration-75 min-w-0">
+              <span className="text-[11px] sm:text-xs font-medium text-[var(--text-secondary)] block">
+                Inventario
+              </span>
+              <p className="text-lg sm:text-xl md:text-2xl font-bold tabular-nums tracking-tight truncate text-amber-500 mt-1">
+                {!showCosts ? "••••••" : formatCOP(totals.stockValue)}
+              </p>
+            </div>
+          </section>
+        )}
 
         {/* 2. Tarjetas de Acción / Navegación (Estilo iOS Settings Row) */}
         <section className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-2.5">
@@ -153,14 +176,37 @@ export default function SummaryView({ onModalStateChange }: SummaryViewProps) {
         {/* 3. Sección HISTORIAL DE CIERRES */}
         <section className="mt-5">
           <h3 className="text-xs font-semibold tracking-wider text-[var(--text-secondary)] uppercase mb-2.5">
-            HISTORIAL DE CIERRES ({closures.length})
+            HISTORIAL DE CIERRES ({loading ? "..." : closures.length})
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {closures.length === 0 ? (
-              <div className="col-span-full rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-8 text-center shadow-sm">
-                <p className="text-sm font-medium text-[var(--text-secondary)]">
-                  Aún no se han registrado cierres de ciclo.
+            {loading ? (
+              <>
+                <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-4 shadow-sm animate-pulse space-y-2.5 h-20">
+                  <div className="flex justify-between items-center">
+                    <div className="h-4 w-32 rounded bg-black/5 dark:bg-white/10" />
+                    <div className="h-4 w-20 rounded-full bg-black/5 dark:bg-white/10" />
+                  </div>
+                  <div className="h-3 w-44 rounded bg-black/5 dark:bg-white/10" />
+                </div>
+                <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-4 shadow-sm animate-pulse space-y-2.5 h-20">
+                  <div className="flex justify-between items-center">
+                    <div className="h-4 w-32 rounded bg-black/5 dark:bg-white/10" />
+                    <div className="h-4 w-20 rounded-full bg-black/5 dark:bg-white/10" />
+                  </div>
+                  <div className="h-3 w-44 rounded bg-black/5 dark:bg-white/10" />
+                </div>
+              </>
+            ) : closures.length === 0 ? (
+              <div className="col-span-full rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-8 text-center shadow-sm select-none">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 text-[var(--text-secondary)] mb-2.5">
+                  <Lock size={22} className="opacity-70" />
+                </div>
+                <h4 className="text-sm font-bold text-[var(--text-primary)]">
+                  Sin cierres de ciclo registrados
+                </h4>
+                <p className="text-xs text-[var(--text-secondary)] mt-1 max-w-xs mx-auto">
+                  Los arqueos de caja y congelación de métricas aparecerán listados aquí cuando se complete un cierre.
                 </p>
               </div>
             ) : (

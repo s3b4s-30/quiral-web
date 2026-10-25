@@ -18,7 +18,7 @@ export default function PurgeConfirmModal({ onClose }: PurgeConfirmModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 dark:bg-black/75 p-4 animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 dark:bg-black/75 p-4 pt-16 animate-in fade-in duration-150">
       <div
         className="w-full max-w-sm overflow-hidden rounded-[28px] border border-[var(--border-color)] bg-[var(--bg-elevated)] p-6 shadow-2xl transition-colors duration-75"
         onClick={(e) => e.stopPropagation()}

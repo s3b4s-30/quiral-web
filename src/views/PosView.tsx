@@ -11,7 +11,7 @@ interface PosViewProps {
 }
 
 export default function PosView({ onCheckoutStateChange }: PosViewProps) {
-  const { products, suppliers, cart, cartUnits, addToCart } = useInventory();
+  const { products, suppliers, cart, cartUnits, addToCart, loading } = useInventory();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<"Todos" | ProductCategory>("Todos");
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -74,7 +74,7 @@ export default function PosView({ onCheckoutStateChange }: PosViewProps) {
 
   return (
     <>
-      <div className="quiral-scroll-container" id="pos-scroll">
+      <div className="quiral-scroll-container pt-16" id="pos-scroll">
         <div className="mx-auto max-w-xl md:max-w-4xl lg:max-w-5xl px-4">
           {/* Header sticky con fondo sólido opaco nativo (Apple HIG) */}
           <div className="sticky top-0 z-20 -mx-4 px-4 pt-1 pb-2.5 mb-4 bg-[var(--bg-primary)] border-b border-[var(--border-color)] transition-colors duration-75">
@@ -127,10 +127,36 @@ export default function PosView({ onCheckoutStateChange }: PosViewProps) {
               cartUnits > 0 ? "pb-44 sm:pb-36" : "pb-32"
             }`}
           >
-            {filteredProducts.length === 0 ? (
-              <div className="col-span-full rounded-3xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-10 text-center shadow-sm">
-                <p className="text-sm font-medium text-[var(--text-secondary)]">
-                  No se encontraron productos para vender que coincidan con la búsqueda o categoría.
+            {loading ? (
+              Array.from({ length: 6 }).map((_, idx) => (
+                <div
+                  key={`pos-skeleton-${idx}`}
+                  className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-3.5 shadow-sm animate-pulse flex flex-col justify-between h-36"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="h-4 w-20 rounded-full bg-black/5 dark:bg-white/10" />
+                      <div className="h-4 w-12 rounded-full bg-black/5 dark:bg-white/10" />
+                    </div>
+                    <div className="h-5 w-3/4 rounded-lg bg-black/5 dark:bg-white/10" />
+                    <div className="h-3 w-1/2 rounded bg-black/5 dark:bg-white/10" />
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-[var(--border-color)]">
+                    <div className="h-6 w-24 rounded-lg bg-black/5 dark:bg-white/10" />
+                    <div className="h-8 w-8 rounded-xl bg-black/5 dark:bg-white/10" />
+                  </div>
+                </div>
+              ))
+            ) : filteredProducts.length === 0 ? (
+              <div className="col-span-full rounded-3xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-8 sm:p-10 text-center shadow-sm select-none animate-in fade-in duration-150">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#007aff]/10 text-[#007aff] dark:text-[#0a84ff] mb-3">
+                  <Search size={26} />
+                </div>
+                <h4 className="text-base font-bold text-[var(--text-primary)]">
+                  Sin productos disponibles
+                </h4>
+                <p className="mt-1 text-xs sm:text-sm font-medium text-[var(--text-secondary)] max-w-sm mx-auto">
+                  No se encontraron productos para vender que coincidan con la búsqueda o el filtro seleccionado.
                 </p>
                 <button
                   type="button"
@@ -138,7 +164,7 @@ export default function PosView({ onCheckoutStateChange }: PosViewProps) {
                     setQuery("");
                     setCategory("Todos");
                   }}
-                  className="mt-4 inline-flex items-center justify-center rounded-xl bg-[#007aff] px-4 py-2 text-xs font-bold text-white shadow-sm"
+                  className="mt-4 inline-flex items-center justify-center rounded-xl bg-[#007aff] px-4 py-2 text-xs font-bold text-white shadow-sm active:scale-95 transition-transform"
                 >
                   Restablecer filtros
                 </button>
