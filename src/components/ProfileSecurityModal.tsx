@@ -1,6 +1,16 @@
-import { AlertTriangle, CheckCircle, KeyRound, Lock, ShieldCheck, User } from "lucide-react";
-import React, { useState } from "react";
+import {
+  AlertTriangle,
+  CheckCircle,
+  Eye,
+  EyeOff,
+  KeyRound,
+  Lock,
+  ShieldCheck,
+  User,
+} from "lucide-react";
+import React, { useRef, useState } from "react";
 import { updateCredentials } from "../lib/authService";
+import { evaluatePasswordStrength } from "../utils/validation";
 import ModalSheet from "./ModalSheet";
 
 interface ProfileSecurityModalProps {
@@ -29,19 +39,32 @@ export default function ProfileSecurityModal({
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  const isSubmittingRef = useRef(false);
+
   if (!isOpen) return null;
+
+  const newPassStrength = evaluatePasswordStrength(newPassword);
+  const passwordsMatch = newPassword.length > 0 && newPassword === confirmPassword;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmittingRef.current || loading) return;
+
     setError(null);
     setSuccess(null);
 
     if (isDemoUser) {
-      setError("La cuenta demo 30/30 está protegida contra modificaciones directas de credenciales.");
+      setError(
+        "La cuenta demo 30/30 está protegida contra modificaciones directas de credenciales."
+      );
       return;
     }
 
@@ -50,16 +73,21 @@ export default function ProfileSecurityModal({
       return;
     }
 
-    if (newPassword && newPassword.length < 6) {
-      setError("La nueva contraseña debe tener al menos 6 caracteres.");
-      return;
+    if (newPassword) {
+      if (!newPassStrength.isValid) {
+        setError(
+          "La nueva contraseña debe cumplir las 5 reglas de seguridad (8+ caracteres, mayúscula, minúscula, número y símbolo)."
+        );
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        setError("La confirmación de la nueva contraseña no coincide.");
+        return;
+      }
     }
 
-    if (newPassword && newPassword !== confirmPassword) {
-      setError("La confirmación de la nueva contraseña no coincide.");
-      return;
-    }
-
+    isSubmittingRef.current = true;
     setLoading(true);
     try {
       await updateCredentials(
@@ -81,6 +109,7 @@ export default function ProfileSecurityModal({
       setError(msg || "No se pudieron actualizar las credenciales.");
     } finally {
       setLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 
@@ -139,13 +168,18 @@ export default function ProfileSecurityModal({
             Nombre de Usuario
           </label>
           <div className="relative flex items-center">
-            <User size={16} className="absolute left-3.5 text-[var(--text-secondary)] pointer-events-none" />
+            <User
+              size={16}
+              className="absolute left-3.5 text-[var(--text-secondary)] pointer-events-none"
+            />
             <input
               type="text"
               autoCapitalize="none"
               disabled={isDemoUser}
               value={newUsername}
-              onChange={(e) => setNewUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.-]/g, ""))}
+              onChange={(e) =>
+                setNewUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.-]/g, ""))
+              }
               className="w-full rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] pl-10 pr-4 py-2.5 text-sm font-semibold text-[var(--text-primary)] outline-none focus:border-[#007aff] transition-colors disabled:opacity-50"
             />
           </div>
@@ -163,50 +197,143 @@ export default function ProfileSecurityModal({
                 Contraseña Actual (Obligatoria para confirmar)
               </label>
               <div className="relative flex items-center">
-                <KeyRound size={16} className="absolute left-3.5 text-[var(--text-secondary)] pointer-events-none" />
+                <KeyRound
+                  size={16}
+                  className="absolute left-3.5 text-[var(--text-secondary)] pointer-events-none"
+                />
                 <input
-                  type="password"
+                  type={showCurrentPassword ? "text" : "password"}
                   disabled={isDemoUser}
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] pl-10 pr-4 py-2.5 text-sm font-semibold text-[var(--text-primary)] outline-none focus:border-[#007aff] transition-colors disabled:opacity-50"
+                  className="w-full rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] pl-10 pr-10 py-2.5 text-sm font-semibold text-[var(--text-primary)] outline-none focus:border-[#007aff] transition-colors disabled:opacity-50"
                 />
+                <button
+                  type="button"
+                  aria-label={showCurrentPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                  title={showCurrentPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                  className="absolute right-3 p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors focus:outline-none"
+                >
+                  {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-1">
-                Nueva Contraseña (Opcional)
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+                  Nueva Contraseña (Opcional)
+                </label>
+                {newPassword.length > 0 && (
+                  <span
+                    className={`text-[11px] font-bold ${
+                      newPassStrength.isValid ? "text-emerald-500" : "text-amber-500"
+                    }`}
+                  >
+                    {newPassStrength.label}
+                  </span>
+                )}
+              </div>
               <div className="relative flex items-center">
-                <Lock size={16} className="absolute left-3.5 text-[var(--text-secondary)] pointer-events-none" />
+                <Lock
+                  size={16}
+                  className="absolute left-3.5 text-[var(--text-secondary)] pointer-events-none"
+                />
                 <input
-                  type="password"
+                  type={showNewPassword ? "text" : "password"}
                   disabled={isDemoUser}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Dejar en blanco para mantener"
-                  className="w-full rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] pl-10 pr-4 py-2.5 text-sm font-semibold text-[var(--text-primary)] outline-none focus:border-[#007aff] transition-colors disabled:opacity-50"
+                  className="w-full rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] pl-10 pr-10 py-2.5 text-sm font-semibold text-[var(--text-primary)] outline-none focus:border-[#007aff] transition-colors disabled:opacity-50"
                 />
+                <button
+                  type="button"
+                  aria-label={showNewPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                  title={showNewPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-3 p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors focus:outline-none"
+                >
+                  {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
+
+              {newPassword.length > 0 && (
+                <div className="mt-2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)] p-2.5 space-y-1 text-xs">
+                  <div
+                    className={`flex items-center gap-1.5 ${
+                      newPassStrength.rules.minLength
+                        ? "text-emerald-500 font-semibold"
+                        : "text-zinc-500"
+                    }`}
+                  >
+                    <CheckCircle size={12} />
+                    <span>8+ caracteres</span>
+                  </div>
+                  <div
+                    className={`flex items-center gap-1.5 ${
+                      newPassStrength.rules.hasUpper && newPassStrength.rules.hasLower
+                        ? "text-emerald-500 font-semibold"
+                        : "text-zinc-500"
+                    }`}
+                  >
+                    <CheckCircle size={12} />
+                    <span>Mayúsculas y minúsculas</span>
+                  </div>
+                  <div
+                    className={`flex items-center gap-1.5 ${
+                      newPassStrength.rules.hasNumber && newPassStrength.rules.hasSpecial
+                        ? "text-emerald-500 font-semibold"
+                        : "text-zinc-500"
+                    }`}
+                  >
+                    <CheckCircle size={12} />
+                    <span>Números y símbolos (@$!%*?&#)</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {newPassword && (
               <div className="animate-in fade-in">
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-1">
-                  Confirmar Nueva Contraseña
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+                    Confirmar Nueva Contraseña
+                  </label>
+                  {confirmPassword.length > 0 && (
+                    <span
+                      className={`text-[11px] font-bold ${
+                        passwordsMatch ? "text-emerald-500" : "text-red-500"
+                      }`}
+                    >
+                      {passwordsMatch ? "Coinciden" : "No coinciden"}
+                    </span>
+                  )}
+                </div>
                 <div className="relative flex items-center">
-                  <Lock size={16} className="absolute left-3.5 text-[var(--text-secondary)] pointer-events-none" />
+                  <Lock
+                    size={16}
+                    className="absolute left-3.5 text-[var(--text-secondary)] pointer-events-none"
+                  />
                   <input
-                    type="password"
+                    type={showConfirmPassword ? "text" : "password"}
                     disabled={isDemoUser}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Repite la nueva contraseña"
-                    className="w-full rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] pl-10 pr-4 py-2.5 text-sm font-semibold text-[var(--text-primary)] outline-none focus:border-[#007aff] transition-colors disabled:opacity-50"
+                    className="w-full rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] pl-10 pr-10 py-2.5 text-sm font-semibold text-[var(--text-primary)] outline-none focus:border-[#007aff] transition-colors disabled:opacity-50"
                   />
+                  <button
+                    type="button"
+                    aria-label={showConfirmPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                    title={showConfirmPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors focus:outline-none"
+                  >
+                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
                 </div>
               </div>
             )}

@@ -1,6 +1,30 @@
-import { AlertTriangle, CheckCircle, KeyRound, Lock, LogIn, Mail, Store, User, UserPlus } from "lucide-react";
-import React, { useState } from "react";
-import { DEMO_BYPASS_PASS, DEMO_BYPASS_USER, requestPasswordReset, signIn, signUpUser } from "../lib/authService";
+import {
+  AlertTriangle,
+  CheckCircle,
+  Eye,
+  EyeOff,
+  KeyRound,
+  Lock,
+  LogIn,
+  Mail,
+  Store,
+  User,
+  UserPlus,
+} from "lucide-react";
+import React, { useRef, useState } from "react";
+import {
+  DEMO_BYPASS_PASS,
+  DEMO_BYPASS_USER,
+  requestPasswordReset,
+  signIn,
+  signUpUser,
+} from "../lib/authService";
+import {
+  evaluatePasswordStrength,
+  isValidEmail,
+  isValidUUID,
+  validateUsernameFormat,
+} from "../utils/validation";
 
 interface AuthScreenProps {
   onAuthSuccess: () => Promise<void> | void;
@@ -12,8 +36,15 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
   const [mode, setMode] = useState<AuthMode>("login");
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+
+  // Estados del formulario de registro
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
+  const [registerPassword, setRegisterPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [storeName, setStoreName] = useState("");
   const [storeIdToJoin, setStoreIdToJoin] = useState("");
   const [isJoiningStore, setIsJoiningStore] = useState(false);
@@ -22,8 +53,30 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  // Referencia para aislamiento de concurrencia (anti-double-submitting)
+  const isSubmittingRef = useRef(false);
+
+  // Evaluaciones de validación reactiva
+  const isEmailValid = isValidEmail(email);
+  const usernameCheck = validateUsernameFormat(username);
+  const passwordStrength = evaluatePasswordStrength(registerPassword);
+  const passwordsMatch =
+    registerPassword.length > 0 && registerPassword === confirmPassword;
+  const isStoreValid = isJoiningStore
+    ? isValidUUID(storeIdToJoin)
+    : storeName.trim().length > 0;
+
+  const isRegisterFormValid =
+    isEmailValid &&
+    usernameCheck.isValid &&
+    passwordStrength.isValid &&
+    passwordsMatch &&
+    isStoreValid;
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmittingRef.current || loading) return;
+
     setError(null);
     setSuccessMessage(null);
 
@@ -33,13 +86,13 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
       return;
     }
 
+    isSubmittingRef.current = true;
     setLoading(true);
     try {
       const authResult = await signIn(cleanUser, password);
       if (!authResult) {
         throw new Error("No se pudo iniciar sesión. Verifica tus credenciales.");
       }
-      // Actualizar el estado global de forma inmediata sin forzar recarga (F5)
       await onAuthSuccess();
     } catch (err: unknown) {
       console.error("Error en login:", err);
@@ -47,40 +100,35 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
       setError(message || "Credenciales incorrectas o problema de conexión.");
     } finally {
       setLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmittingRef.current || loading || !isRegisterFormValid) return;
+
     setError(null);
     setSuccessMessage(null);
 
-    if (!email.trim() || !username.trim() || !password) {
-      setError("Completa todos los campos obligatorios.");
-      return;
-    }
-
-    if (password.length < 6) {
-      setError("La contraseña debe tener al menos 6 caracteres.");
-      return;
-    }
-
+    isSubmittingRef.current = true;
     setLoading(true);
     try {
       await signUpUser(
         email,
         username,
-        password,
+        registerPassword,
         isJoiningStore ? "" : storeName || "Mi tienda",
         isJoiningStore ? storeIdToJoin : undefined
       );
       setSuccessMessage("¡Cuenta creada exitosamente! Iniciando sesión...");
       try {
-        await signIn(username, password);
+        await signIn(username, registerPassword);
         await onAuthSuccess();
       } catch {
         setMode("login");
         setIdentifier(username);
+        setPassword(registerPassword);
       }
     } catch (err: unknown) {
       console.error("Error en registro:", err);
@@ -88,19 +136,23 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
       setError(message || "No se pudo registrar la cuenta.");
     } finally {
       setLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmittingRef.current || loading) return;
+
     setError(null);
     setSuccessMessage(null);
 
-    if (!email.trim()) {
-      setError("Ingresa el correo electrónico asociado a tu cuenta.");
+    if (!email.trim() || !isValidEmail(email)) {
+      setError("Ingresa un correo electrónico válido asociado a tu cuenta.");
       return;
     }
 
+    isSubmittingRef.current = true;
     setLoading(true);
     try {
       await requestPasswordReset(email);
@@ -111,6 +163,7 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
       setError(message || "No se pudo enviar el correo de recuperación.");
     } finally {
       setLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 
@@ -121,7 +174,7 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/75 dark:bg-black/85 p-4 pt-16 sm:p-6 sm:pt-16 transition-all duration-200">
-      <div className="w-full max-w-md rounded-3xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-6 sm:p-8 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      <div className="w-full max-w-md rounded-3xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-6 sm:p-8 shadow-2xl animate-in fade-in zoom-in-95 duration-150 my-auto">
         {/* Cabecera / Marca Quiral */}
         <div className="flex flex-col items-center text-center mb-6">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#007aff] text-white shadow-lg shadow-blue-500/30">
@@ -132,7 +185,7 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
           </h1>
           <p className="text-xs text-[var(--text-secondary)] mt-1 font-medium">
             {mode === "login" && "Acceso para propietarios y colaboradores"}
-            {mode === "register" && "Crea tu tienda o únete como colaborador"}
+            {mode === "register" && "Crea tu tienda segura o únete como colaborador"}
             {mode === "forgot" && "Recuperación de contraseña segura"}
           </p>
         </div>
@@ -160,7 +213,10 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
                 Usuario o Correo
               </label>
               <div className="relative flex items-center">
-                <User size={16} className="absolute left-3.5 text-[var(--text-secondary)] pointer-events-none" />
+                <User
+                  size={16}
+                  className="absolute left-3.5 text-[var(--text-secondary)] pointer-events-none"
+                />
                 <input
                   type="text"
                   autoCapitalize="none"
@@ -191,27 +247,39 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
                 </button>
               </div>
               <div className="relative flex items-center">
-                <Lock size={16} className="absolute left-3.5 text-[var(--text-secondary)] pointer-events-none" />
+                <Lock
+                  size={16}
+                  className="absolute left-3.5 text-[var(--text-secondary)] pointer-events-none"
+                />
                 <input
-                  type="password"
+                  type={showLoginPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full rounded-2xl border border-[var(--border-color)] bg-[var(--bg-primary)] pl-10 pr-4 py-3 text-sm font-semibold text-[var(--text-primary)] outline-none focus:border-[#007aff] transition-colors"
+                  className="w-full rounded-2xl border border-[var(--border-color)] bg-[var(--bg-primary)] pl-10 pr-10 py-3 text-sm font-semibold text-[var(--text-primary)] outline-none focus:border-[#007aff] transition-colors"
                 />
+                <button
+                  type="button"
+                  aria-label={showLoginPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                  title={showLoginPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                  onClick={() => setShowLoginPassword(!showLoginPassword)}
+                  className="absolute right-3 p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors focus:outline-none"
+                >
+                  {showLoginPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-2 flex items-center justify-center gap-2 rounded-2xl bg-[#007aff] hover:bg-[#006ee6] py-3.5 text-sm font-bold text-white shadow-[0_4px_14px_rgba(0,122,255,0.4)] active:scale-[0.99] transition-transform disabled:opacity-50"
+              className="w-full mt-2 flex items-center justify-center gap-2 rounded-2xl bg-[#007aff] hover:bg-[#006ee6] py-3.5 text-sm font-bold text-white shadow-[0_4px_14px_rgba(0,122,255,0.4)] active:scale-[0.99] transition-transform disabled:opacity-50 disabled:pointer-events-none"
             >
               <LogIn size={18} />
               <span>{loading ? "Iniciando sesión..." : "Iniciar Sesión"}</span>
             </button>
 
-            {/* Acceso Rápido de Prueba 30 / 30 con Alerta de Seguridad */}
+            {/* Acceso Rápido de Prueba 30 / 30 */}
             <div className="mt-4 pt-3 border-t border-[var(--border-color)]">
               <button
                 type="button"
@@ -247,11 +315,25 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
         {mode === "register" && (
           <form onSubmit={handleRegister} className="space-y-3.5">
             <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-1">
-                Correo Electrónico
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+                  Correo Electrónico
+                </label>
+                {email.trim().length > 0 && (
+                  <span
+                    className={`text-[11px] font-bold ${
+                      isEmailValid ? "text-emerald-500" : "text-amber-500"
+                    }`}
+                  >
+                    {isEmailValid ? "Válido" : "Inválido"}
+                  </span>
+                )}
+              </div>
               <div className="relative flex items-center">
-                <Mail size={16} className="absolute left-3.5 text-[var(--text-secondary)] pointer-events-none" />
+                <Mail
+                  size={16}
+                  className="absolute left-3.5 text-[var(--text-secondary)] pointer-events-none"
+                />
                 <input
                   type="email"
                   value={email}
@@ -263,16 +345,32 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-1">
-                Nombre de Usuario Único
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+                  Nombre de Usuario Único
+                </label>
+                {username.trim().length > 0 && (
+                  <span
+                    className={`text-[11px] font-bold ${
+                      usernameCheck.isValid ? "text-emerald-500" : "text-amber-500"
+                    }`}
+                  >
+                    {usernameCheck.isValid ? "Válido" : "3-24 letras/núms"}
+                  </span>
+                )}
+              </div>
               <div className="relative flex items-center">
-                <User size={16} className="absolute left-3.5 text-[var(--text-secondary)] pointer-events-none" />
+                <User
+                  size={16}
+                  className="absolute left-3.5 text-[var(--text-secondary)] pointer-events-none"
+                />
                 <input
                   type="text"
                   autoCapitalize="none"
                   value={username}
-                  onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.-]/g, ""))}
+                  onChange={(e) =>
+                    setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.-]/g, ""))
+                  }
                   placeholder="ej. juan_pos"
                   className="w-full rounded-2xl border border-[var(--border-color)] bg-[var(--bg-primary)] pl-10 pr-4 py-3 text-sm font-semibold text-[var(--text-primary)] outline-none focus:border-[#007aff] transition-colors"
                 />
@@ -280,18 +378,182 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-1">
-                Contraseña (mínimo 6 caracteres)
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+                  Contraseña
+                </label>
+                {registerPassword.length > 0 && (
+                  <div className="flex items-center gap-1 text-[11px]">
+                    <span className="text-[var(--text-secondary)]">Fortaleza:</span>
+                    <span
+                      className={`font-bold ${
+                        passwordStrength.isValid ? "text-emerald-500" : passwordStrength.colorClass.split(" ")[1]
+                      }`}
+                    >
+                      {passwordStrength.label}
+                    </span>
+                  </div>
+                )}
+              </div>
               <div className="relative flex items-center">
-                <Lock size={16} className="absolute left-3.5 text-[var(--text-secondary)] pointer-events-none" />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full rounded-2xl border border-[var(--border-color)] bg-[var(--bg-primary)] pl-10 pr-4 py-3 text-sm font-semibold text-[var(--text-primary)] outline-none focus:border-[#007aff] transition-colors"
+                <Lock
+                  size={16}
+                  className="absolute left-3.5 text-[var(--text-secondary)] pointer-events-none"
                 />
+                <input
+                  type={showRegisterPassword ? "text" : "password"}
+                  value={registerPassword}
+                  onChange={(e) => setRegisterPassword(e.target.value)}
+                  placeholder="Mínimo 8 caracteres seguros"
+                  className="w-full rounded-2xl border border-[var(--border-color)] bg-[var(--bg-primary)] pl-10 pr-10 py-3 text-sm font-semibold text-[var(--text-primary)] outline-none focus:border-[#007aff] transition-colors"
+                />
+                <button
+                  type="button"
+                  aria-label={showRegisterPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                  title={showRegisterPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                  onClick={() => setShowRegisterPassword(!showRegisterPassword)}
+                  className="absolute right-3 p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors focus:outline-none"
+                >
+                  {showRegisterPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+
+              {/* Barra de progreso de fortaleza */}
+              {registerPassword.length > 0 && (
+                <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
+                  <div
+                    className={`h-full transition-all duration-300 ${passwordStrength.colorClass.split(" ")[0]} ${passwordStrength.barWidthClass}`}
+                  />
+                </div>
+              )}
+
+              {/* Checklist interactivo de las 5 reglas */}
+              {registerPassword.length > 0 && (
+                <div className="mt-2.5 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-primary)] p-2.5 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                  <div
+                    className={`flex items-center gap-1.5 text-xs transition-colors ${
+                      passwordStrength.rules.minLength
+                        ? "text-emerald-500 font-semibold"
+                        : "text-zinc-500 dark:text-zinc-400"
+                    }`}
+                  >
+                    {passwordStrength.rules.minLength ? (
+                      <CheckCircle size={13} className="shrink-0 text-emerald-500" />
+                    ) : (
+                      <div className="h-3 w-3 rounded-full border border-current opacity-60 shrink-0" />
+                    )}
+                    <span>8+ caracteres</span>
+                  </div>
+
+                  <div
+                    className={`flex items-center gap-1.5 text-xs transition-colors ${
+                      passwordStrength.rules.hasUpper
+                        ? "text-emerald-500 font-semibold"
+                        : "text-zinc-500 dark:text-zinc-400"
+                    }`}
+                  >
+                    {passwordStrength.rules.hasUpper ? (
+                      <CheckCircle size={13} className="shrink-0 text-emerald-500" />
+                    ) : (
+                      <div className="h-3 w-3 rounded-full border border-current opacity-60 shrink-0" />
+                    )}
+                    <span>Mayúscula (A-Z)</span>
+                  </div>
+
+                  <div
+                    className={`flex items-center gap-1.5 text-xs transition-colors ${
+                      passwordStrength.rules.hasLower
+                        ? "text-emerald-500 font-semibold"
+                        : "text-zinc-500 dark:text-zinc-400"
+                    }`}
+                  >
+                    {passwordStrength.rules.hasLower ? (
+                      <CheckCircle size={13} className="shrink-0 text-emerald-500" />
+                    ) : (
+                      <div className="h-3 w-3 rounded-full border border-current opacity-60 shrink-0" />
+                    )}
+                    <span>Minúscula (a-z)</span>
+                  </div>
+
+                  <div
+                    className={`flex items-center gap-1.5 text-xs transition-colors ${
+                      passwordStrength.rules.hasNumber
+                        ? "text-emerald-500 font-semibold"
+                        : "text-zinc-500 dark:text-zinc-400"
+                    }`}
+                  >
+                    {passwordStrength.rules.hasNumber ? (
+                      <CheckCircle size={13} className="shrink-0 text-emerald-500" />
+                    ) : (
+                      <div className="h-3 w-3 rounded-full border border-current opacity-60 shrink-0" />
+                    )}
+                    <span>Un número (0-9)</span>
+                  </div>
+
+                  <div
+                    className={`flex items-center gap-1.5 text-xs transition-colors ${
+                      passwordStrength.rules.hasSpecial
+                        ? "text-emerald-500 font-semibold"
+                        : "text-zinc-500 dark:text-zinc-400"
+                    }`}
+                  >
+                    {passwordStrength.rules.hasSpecial ? (
+                      <CheckCircle size={13} className="shrink-0 text-emerald-500" />
+                    ) : (
+                      <div className="h-3 w-3 rounded-full border border-current opacity-60 shrink-0" />
+                    )}
+                    <span>Símbolo especial (!@#$%^&*)</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+                  Confirmar Contraseña
+                </label>
+                {confirmPassword.length > 0 && (
+                  <span
+                    className={`text-[11px] font-bold flex items-center gap-1 ${
+                      passwordsMatch ? "text-emerald-500" : "text-red-500"
+                    }`}
+                  >
+                    {passwordsMatch ? (
+                      <>
+                        <CheckCircle size={12} />
+                        <span>Coinciden</span>
+                      </>
+                    ) : (
+                      <>
+                        <AlertTriangle size={12} />
+                        <span>No coinciden</span>
+                      </>
+                    )}
+                  </span>
+                )}
+              </div>
+              <div className="relative flex items-center">
+                <Lock
+                  size={16}
+                  className="absolute left-3.5 text-[var(--text-secondary)] pointer-events-none"
+                />
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Repite la contraseña exacta"
+                  className="w-full rounded-2xl border border-[var(--border-color)] bg-[var(--bg-primary)] pl-10 pr-10 py-3 text-sm font-semibold text-[var(--text-primary)] outline-none focus:border-[#007aff] transition-colors"
+                />
+                <button
+                  type="button"
+                  aria-label={showConfirmPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                  title={showConfirmPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors focus:outline-none"
+                >
+                  {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
             </div>
 
@@ -331,11 +593,17 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
 
             <button
               type="submit"
-              disabled={loading}
-              className="w-full mt-2 flex items-center justify-center gap-2 rounded-2xl bg-[#007aff] hover:bg-[#006ee6] py-3.5 text-sm font-bold text-white shadow-[0_4px_14px_rgba(0,122,255,0.4)] active:scale-[0.99] transition-transform disabled:opacity-50"
+              disabled={loading || !isRegisterFormValid}
+              className="w-full mt-2 flex items-center justify-center gap-2 rounded-2xl bg-[#007aff] hover:bg-[#006ee6] py-3.5 text-sm font-bold text-white shadow-[0_4px_14px_rgba(0,122,255,0.4)] active:scale-[0.99] transition-transform disabled:opacity-50 disabled:pointer-events-none"
             >
               <UserPlus size={18} />
-              <span>{loading ? "Creando cuenta..." : "Registrar Tienda"}</span>
+              <span>
+                {loading
+                  ? "Creando cuenta..."
+                  : isJoiningStore
+                  ? "Unirse a Tienda"
+                  : "Registrar Tienda"}
+              </span>
             </button>
 
             <div className="text-center pt-2">
@@ -363,7 +631,10 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
                 Correo Electrónico
               </label>
               <div className="relative flex items-center">
-                <Mail size={16} className="absolute left-3.5 text-[var(--text-secondary)] pointer-events-none" />
+                <Mail
+                  size={16}
+                  className="absolute left-3.5 text-[var(--text-secondary)] pointer-events-none"
+                />
                 <input
                   type="email"
                   value={email}
@@ -377,7 +648,7 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-2 flex items-center justify-center gap-2 rounded-2xl bg-[#007aff] hover:bg-[#006ee6] py-3.5 text-sm font-bold text-white shadow-[0_4px_14px_rgba(0,122,255,0.4)] active:scale-[0.99] transition-transform disabled:opacity-50"
+              className="w-full mt-2 flex items-center justify-center gap-2 rounded-2xl bg-[#007aff] hover:bg-[#006ee6] py-3.5 text-sm font-bold text-white shadow-[0_4px_14px_rgba(0,122,255,0.4)] active:scale-[0.99] transition-transform disabled:opacity-50 disabled:pointer-events-none"
             >
               <span>{loading ? "Enviando..." : "Enviar Enlace de Recuperación"}</span>
             </button>

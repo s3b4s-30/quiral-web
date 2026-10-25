@@ -35,6 +35,20 @@ export async function resolveLoginEmail(identifier: string): Promise<string | nu
   }
 }
 
+export async function checkUsernameAvailability(username: string): Promise<boolean> {
+  const clean = username.trim().toLowerCase();
+  if (!clean || clean.length < 3) return false;
+  try {
+    const { data, error } = await supabase.rpc("get_email_by_username", {
+      input_username: clean,
+    });
+    if (error) return true;
+    return !data;
+  } catch {
+    return true;
+  }
+}
+
 export async function signIn(identifier: string, password: string) {
   const cleanId = identifier.trim();
   const isDemo = cleanId === DEMO_BYPASS_USER && password === DEMO_BYPASS_PASS;
@@ -127,6 +141,9 @@ export async function signUpUser(
   });
 
   if (error) throw error;
+  if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+    throw new Error("El correo electrónico ya se encuentra registrado.");
+  }
   return data;
 }
 
@@ -210,4 +227,3 @@ export async function getStoreMembership(userId: string) {
   }
   return null;
 }
-

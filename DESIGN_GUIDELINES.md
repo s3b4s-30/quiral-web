@@ -100,6 +100,7 @@ Queda formalmente prohibida la reintroducción de los siguientes elementos, patr
 | **Margen superior seguro `pt-16` en vistas y modales** | **Confirmada** | 2026-10-25 | Integración de `padding-top: max(4rem, var(--quiral-header-offset))` y `pt-16` en las 4 vistas principales y modales para blindaje total contra notch y status bar de iOS. |
 | **Margen superior y contención de altura en `ModalSheet` (`mt-12`)** | **Confirmada** | 2026-10-25 | Aplicación de `mt-12 sm:mt-0` y `max-h-[calc(100dvh-3.5rem)]` en `ModalSheet.tsx` para evitar que las hojas modales queden pegadas al borde superior en móviles, revelando limpiamente la píldora de arrastre y el título. |
 | **Guardas anti-bucles asíncronos y protección de cuota Supabase** | **Confirmada** | 2026-10-25 | Mutex en vuelo `syncInProgressRef`, invalidación de respuestas lentas (`activeStoreRequestIdRef`) y omisión de relecturas completas en eventos `TOKEN_REFRESHED`. |
+| **Flujo de registro interactivo con visibilidad de contraseña y checklist de 5 reglas** | **Confirmada** | 2026-10-25 | Alternancia accesible Eye/EyeOff en campos de credenciales, checklist dinámico en tiempo real de 5 reglas de seguridad, confirmación estricta y aislamiento de concurrencia anti-double-submitting en `AuthScreen.tsx` y `ProfileSecurityModal.tsx`. |
 
 ---
 
