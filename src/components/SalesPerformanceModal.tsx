@@ -191,7 +191,7 @@ export default function SalesPerformanceModal({
     >
       {/* 1. Selector de Período Consultado */}
       <section>
-        <p className="text-[11px] font-bold tracking-wider text-zinc-400 uppercase mb-2">
+        <p className="text-[11px] font-bold tracking-wider text-[var(--text-secondary)] uppercase mb-2">
           PERÍODO CONSULTADO
         </p>
         <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
@@ -200,8 +200,8 @@ export default function SalesPerformanceModal({
             onClick={() => setSelectedCycleId("actual")}
             className={`whitespace-nowrap rounded-full px-4 py-1.5 text-xs font-semibold transition-colors duration-75 select-none ${
               selectedCycleId === "actual"
-                ? "bg-blue-500 text-white shadow-sm"
-                : "border border-zinc-200/80 dark:border-white/5 bg-[var(--bg-elevated)] text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/10"
+                ? "bg-[#007aff] text-white shadow-sm"
+                : "border border-[var(--border-color)] bg-[var(--bg-elevated)] text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/10"
             }`}
           >
             Ciclo Actual
@@ -215,8 +215,8 @@ export default function SalesPerformanceModal({
                 onClick={() => setSelectedCycleId(c.id)}
                 className={`whitespace-nowrap rounded-full px-4 py-1.5 text-xs font-semibold transition-colors duration-75 select-none ${
                   isActive
-                    ? "bg-blue-500 text-white shadow-sm"
-                    : "border border-zinc-200/80 dark:border-white/5 bg-[var(--bg-elevated)] text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/10"
+                    ? "bg-[#007aff] text-white shadow-sm"
+                    : "border border-[var(--border-color)] bg-[var(--bg-elevated)] text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/10"
                 }`}
               >
                 {c.periodLabel}
@@ -227,13 +227,13 @@ export default function SalesPerformanceModal({
       </section>
 
       {/* 2. Segmented Control de Métricas (2 Pestañas) */}
-      <div className="rounded-2xl bg-zinc-100 dark:bg-zinc-900 p-1 grid grid-cols-2 gap-1 select-none">
+      <div className="rounded-2xl bg-black/5 dark:bg-white/5 p-1 grid grid-cols-2 gap-1 select-none">
         <button
           type="button"
           onClick={() => setMetricTab("sellers")}
           className={`flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 active:scale-95 ${
             metricTab === "sellers"
-              ? "bg-blue-500 text-white shadow-sm"
+              ? "bg-[#007aff] text-white shadow-sm"
               : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
           }`}
         >
@@ -246,7 +246,7 @@ export default function SalesPerformanceModal({
           onClick={() => setMetricTab("returned")}
           className={`flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 active:scale-95 ${
             metricTab === "returned"
-              ? "bg-amber-500 text-white shadow-sm"
+              ? "bg-[#ff9500] text-white shadow-sm"
               : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
           }`}
         >
@@ -259,8 +259,8 @@ export default function SalesPerformanceModal({
       <div className="space-y-3 pb-8">
         {metricTab === "sellers" ? (
           sellersList.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-zinc-200/80 dark:border-white/5 bg-[var(--bg-elevated)] p-10 text-center shadow-sm">
-              <ShoppingBag size={40} className="text-zinc-300 dark:text-zinc-600 mb-2" />
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-10 text-center shadow-sm">
+              <ShoppingBag size={40} className="text-[var(--text-secondary)] mb-2 opacity-50" />
               <p className="text-sm font-medium text-[var(--text-secondary)]">
                 No hay ventas registradas en este período.
               </p>
@@ -272,27 +272,27 @@ export default function SalesPerformanceModal({
               return (
                 <article
                   key={item.id}
-                  className="rounded-2xl border border-zinc-200/80 dark:border-white/5 bg-[var(--bg-elevated)] p-4 shadow-sm space-y-2 transition-colors duration-75"
+                  className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-4 shadow-sm space-y-2 transition-colors duration-75"
                 >
                   {/* Encabezado: Posición, Nombre y Badge de unidades */}
                   <div className="flex items-start gap-2.5">
-                    <span className="w-5 text-sm font-extrabold text-zinc-400 shrink-0 pt-0.5">
+                    <span className="w-5 text-sm font-extrabold text-[var(--text-secondary)] shrink-0 pt-0.5">
                       {idx + 1}
                     </span>
                     <h4 className="flex-1 min-w-0 text-[15px] font-semibold text-[var(--text-primary)] leading-snug line-clamp-2">
                       {item.name}
                     </h4>
-                    <span className="tabular-nums px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-500/15 text-blue-500 dark:text-blue-400 shrink-0">
+                    <span className="tabular-nums px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#007aff]/15 text-[#007aff] dark:text-[#0a84ff] shrink-0">
                       {item.qty} uds
                     </span>
                   </div>
 
-                  {/* Fila de Ingresos y Utilidad */}
-                  <div className="flex items-center justify-between text-xs pt-1 border-t border-zinc-100 dark:border-white/5">
+                  {/* Fila de Ingresos y Utilidad con flex-wrap para evitar solapamientos */}
+                  <div className="flex flex-wrap items-center justify-between gap-1.5 text-xs pt-1 border-t border-[var(--border-color)]">
                     <span className="text-[var(--text-secondary)] font-medium">
                       Ingresos: <strong className="text-[var(--text-primary)] font-bold tabular-nums">{formatCOP(item.revenue)}</strong>
                     </span>
-                    <span className="text-emerald-500 font-bold tabular-nums">
+                    <span className="text-emerald-500 font-bold tabular-nums ml-auto">
                       {!showCosts ? "••••••" : `+${formatCOP(item.profit)}`}
                     </span>
                   </div>
@@ -303,13 +303,13 @@ export default function SalesPerformanceModal({
                       <button
                         type="button"
                         onClick={() => setOpenTxId(isTxOpen ? null : item.id)}
-                        className="text-xs font-medium text-blue-500 dark:text-blue-400 hover:underline active:scale-95 transition-transform"
+                        className="text-xs font-medium text-[#007aff] dark:text-[#0a84ff] hover:underline active:scale-95 transition-transform"
                       >
                         {isTxOpen ? "Ocultar transacciones" : "Ver transacciones"}
                       </button>
 
                       {isTxOpen && (
-                        <div className="mt-2.5 space-y-1.5 border-t border-zinc-100 dark:border-white/5 pt-2 animate-in fade-in duration-150">
+                        <div className="mt-2.5 space-y-1.5 border-t border-[var(--border-color)] pt-2 animate-in fade-in duration-150">
                           {item.tx.map((t) => (
                             <div
                               key={t.id}
@@ -334,7 +334,7 @@ export default function SalesPerformanceModal({
           )
         ) : (
           returnedList.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-zinc-200/80 dark:border-white/5 bg-[var(--bg-elevated)] p-10 text-center shadow-sm">
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-10 text-center shadow-sm">
               <CheckCircle2 size={40} className="text-emerald-500 mb-2" />
               <p className="text-sm font-semibold text-[var(--text-primary)]">
                 Sin incidencias de garantía en este período
@@ -347,22 +347,22 @@ export default function SalesPerformanceModal({
             returnedList.map((item, idx) => (
               <article
                 key={item.id}
-                className="rounded-2xl border border-zinc-200/80 dark:border-white/5 bg-[var(--bg-elevated)] p-4 shadow-sm space-y-2 transition-colors duration-75"
+                className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-4 shadow-sm space-y-2 transition-colors duration-75"
               >
                 <div className="flex items-start gap-2.5">
-                  <span className="w-5 text-sm font-extrabold text-zinc-400 shrink-0 pt-0.5">
+                  <span className="w-5 text-sm font-extrabold text-[var(--text-secondary)] shrink-0 pt-0.5">
                     {idx + 1}
                   </span>
                   <h4 className="flex-1 min-w-0 text-[15px] font-semibold text-[var(--text-primary)] leading-snug line-clamp-2">
                     {item.name}
                   </h4>
-                  <span className="tabular-nums px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 shrink-0">
+                  <span className="tabular-nums px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#ff9500]/15 text-[#ff9500] shrink-0">
                     {item.qty} reclamos
                   </span>
                 </div>
 
                 {item.notes.length > 0 && (
-                  <div className="border-t border-zinc-100 dark:border-white/5 pt-2 text-xs space-y-1 text-[var(--text-secondary)]">
+                  <div className="border-t border-[var(--border-color)] pt-2 text-xs space-y-1 text-[var(--text-secondary)]">
                     {item.notes.map((note, nIdx) => (
                       <p key={nIdx} className="italic">
                         • {note}
@@ -378,4 +378,3 @@ export default function SalesPerformanceModal({
     </ModalSheet>
   );
 }
-

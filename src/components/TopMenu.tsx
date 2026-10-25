@@ -80,7 +80,7 @@ export default function TopMenu({
           <button
             type="button"
             aria-label="Cerrar menú de configuración"
-            className="fixed inset-0 z-40 h-full w-full cursor-default bg-black/40 backdrop-blur-[2px] touch-none"
+            className="fixed inset-0 z-40 h-full w-full cursor-default bg-black/50 touch-none"
             onClick={handleDismissBackdrop}
             onTouchEnd={handleDismissBackdrop}
             onMouseDown={handleDismissBackdrop}
@@ -89,7 +89,7 @@ export default function TopMenu({
             ref={popoverRef}
             id="top-menu-popover"
             role="menu"
-            className="absolute right-0 top-12 z-50 w-72 origin-top-right rounded-3xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-4 shadow-2xl shadow-black/25 backdrop-blur-md animate-in fade-in zoom-in-95 duration-150"
+            className="absolute right-0 top-12 z-50 w-72 origin-top-right rounded-3xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-4 shadow-2xl shadow-black/30 animate-in fade-in zoom-in-95 duration-150"
           >
             {/* Información de Tienda y Usuario */}
             <div className="mb-3">

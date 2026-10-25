@@ -1,101 +1,111 @@
-# DESIGN_GUIDELINES.md — Quiral POS (iOS HIG & PWA Architecture)
+# DESIGN_GUIDELINES.md — Sistema de Diseño Quiral POS (Apple HIG & PWA)
 
-Este documento define el sistema de diseño, la arquitectura de interfaz de usuario y el protocolo de gobernanza técnica para **Quiral POS**. Es de cumplimiento obligatorio para cualquier intervención en el código frontend.
-
----
-
-## 1. Principios de diseño móvil e iOS (Reglas de UI/UX)
-
-### A. Botones de acción y márgenes inferiores
-- **Posición fija cercana al borde inferior:** En vistas modales y hojas de acción (*Nuevo producto*, *Detalle de producto*, *Checkout*), los botones de acción principal (como «Guardar producto» o «Listo») deben residir en un contenedor fijo (*footer persistente*), fuera del área desplazable.
-- **Respeto estricto de Safe Areas:** Se debe utilizar `env(safe-area-inset-bottom)` de forma adaptativa (`pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] sm:pb-3`) para que el botón descanse ergonómicamente sobre el indicador de inicio de iOS sin flotar demasiado arriba ni quedar cortado.
-- **Acciones Destructivas:** Las acciones de peligro (como «Eliminar producto») deben mantenerse al final del flujo de contenido desplazable y requerir confirmación modal obligatoria, previniendo pulsaciones accidentales sobre el borde inferior.
-
-### B. Encabezados y modales (*Bottom Sheets*)
-- **Estructura Arquitectónica:** Encabezado persistente, contenido central con scroll independiente y footer persistente cuando corresponda.
-- **Píldora de Arrastre (*Handle*):** Píldora horizontal centrada en la parte superior (`w-9 h-1 rounded-full bg-neutral-300 dark:bg-neutral-600`), ubicada a `10px` del borde superior (`pt-2.5 pb-1`).
-- **Encabezados Fijos y Proporciones:**
-  - Fondo opaco sólido `bg-[var(--bg-elevated)]` o `.quiral-top-header` para evitar que el texto en scroll pase visiblemente por detrás.
-  - La proporción respecto al borde superior utiliza exclusivamente `calc(env(safe-area-inset-top, 0px) + 0.625rem)`, garantizando que en modo navegador Safari no se genere un vacío artificial y que en PWA standalone descanse exactamente bajo la barra de estado/notch.
-  - El título principal usa `flex-1 min-w-0 truncate` para nunca empujar o invadir los controles de acción.
-  - Uso de `sticky top-0 z-30` o `shrink-0` únicamente cuando la estructura del DOM lo requiera.
-- **Swipe-to-Dismiss:**
-  - Deslizamiento hacia abajo habilitado desde el área de la cabecera/handle con retorno suave (`cubic-bezier(0.32, 0.72, 0, 1)`).
-  - Los gestos excluyen elementos interactivos (`button`, `input`, `select`, `a`), permitiendo pulsaciones inmediatas sin bloqueos.
-
-### C. Scroll y áreas seguras
-- **Scroll Independiente:** Cada vista o modal maneja su propio desplazamiento vertical con `overflow-y-auto overscroll-contain` e inercia táctil `-webkit-overflow-scrolling: touch`.
-- **Compensación de Cabecera:** `.quiral-scroll-container` inicia limpiamente bajo la barra superior mediante `padding-top: calc(env(safe-area-inset-top, 0px) + 4.25rem)`, erradicando dobles contabilizaciones de safe area.
-- **Aislamiento y Bloqueo:** Al abrir un modal, se bloquea temporalmente el scroll de `document.body` (`overflow: hidden; touch-action: none;`) y se restaura limpiamente al desmontar el componente.
-- **Viewport Dinámico:** Integración con `100dvh` y `viewport-fit=cover` para compatibilidad nativa en Safari iOS y modo PWA standalone.
-
-### D. Consistencia visual y datos
-- **Pila Tipográfica y Números:** Fuente sans-serif nativa de Apple. Uso obligatorio de `.tabular-nums` en precios, stock y cifras monetarias (formato COP con separador de miles por punto).
-- **Control Maestro de Unidades y Lotes:** Los botones `+` y `-` del total de stock operan determinísticamente sobre los lotes por proveedor (añadiendo al lote con mayor cantidad, o sustrayendo del lote con mayor stock disponible sin permitir valores negativos). El total siempre coincide con la suma exacta de sus lotes.
-- **Modo Administrador Único:** Implementado a través del componente unificado `AdminCompactButton` en la cabecera superior: botón circular compacto de icono en pantallas estrechas (`< 420px`), expandiéndose a píldora completa en pantallas mayores. Se prohíbe duplicar este texto o badge en el cuerpo de las vistas.
-- **Barra de Navegación Global:** La `Navbar` se desmonta dinámicamente (`!hasActiveModal`) ante cualquier modal activo para erradicar solapamientos de *stacking context*.
-- **Movimiento accesible:** Las transiciones de estado se limitan a propiedades específicas y cuentan con una reducción global mediante `prefers-reduced-motion`; los efectos de profundidad mantienen una alternativa opaca cuando el desenfoque no está disponible.
-- **Menú de tema inmediato:** `.theme-menu` centraliza la desactivación de transiciones en el botón y el popover de configuración. Todos sus textos y controles cambian de color inmediatamente al alternar tema, evitando interpolaciones blanco/negro y correcciones aisladas por etiqueta.
-- **Tema instantáneo global:** La utilidad `.transition-colors` se anula centralmente para toda la interfaz. Los cambios de color, fondo y borde entre temas son inmediatos; las animaciones de `transform` y `opacity` siguen disponibles para interacción y navegación.
-- **Liquid Glass selectivo:** La `Navbar` flotante utiliza una superficie ultra translúcida (10% en claro, 14% en oscuro), saturación `1.8` y desenfoque `42px` porque no es una cabecera sobre contenido desplazable; las cabeceras de vistas permanecen sólidas para evitar artefactos de WebKit. Incluye fallback opaco cuando el navegador no soporta `backdrop-filter`.
-- **Controles de inventario persistentes:** El buscador y los filtros de categoría permanecen fijos bajo la cabecera durante el desplazamiento. `.quiral-scroll-container` reserva el espacio de la cabecera con `--quiral-header-offset`; `.inventory-sticky-controls` se adhiere a `top: 0` dentro de ese scrollport para no duplicar el offset.
-- **Retorno al inicio:** Seleccionar `Inventario` desde la Navbar inferior o pulsar su título en la cabecera devuelve el scroll de la vista al inicio con una transición breve.
-- **POS modular:** `PosView`, `CartSummaryBar` y `CheckoutModal` separan catálogo, resumen y cobro, mientras `InventoryContext` mantiene el carrito y la validación de stock como fuente única de verdad.
-- **Checkout POS:** El cobro permite editar el cliente, el precio unitario, la cantidad y el lote/proveedor desde `CheckoutModal`. Las mutaciones pasan por `InventoryContext`, que rechaza precios negativos y limita la cantidad al stock del lote seleccionado.
-- **Interacción rápida POS:** Las tarjetas con stock disponible son el único control interactivo de su superficie; el contador es un indicador visual no anidado. El total opcional se normaliza a dígitos antes de calcular el descuento y nunca puede superar el subtotal.
-- **Precios y selección POS:** El precio de cada tarjeta se muestra una sola vez en una línea sin salto. La tarjeta completa añade unidades y solo muestra un círculo contador cuando ya existe una selección. Los campos de total muestran siempre el formato COP visible (`$35.000`) aunque conserven un valor numérico interno.
-- **Resumen financiero compacto:** El bloque de checkout muestra únicamente el subtotal y un input para ajustar el total; la cifra final se presenta exclusivamente en el botón persistente `Completar venta`.
-- **Scrim de menús:** `TopMenu` renderiza un scrim fijo (`z-index` inferior a la tarjeta) que cubre la pantalla completa, incluida la Navbar. Tocar el scrim es la única acción fuera de la tarjeta necesaria para cerrar el menú.
+Este documento define la arquitectura visual, los estándares de experiencia de usuario (UX/UI), el comportamiento táctil y las directrices ergonómicas de **Quiral POS**. Su cumplimiento es obligatorio en cualquier modificación del frontend.
 
 ---
 
-## 2. Historial de Descarte
+## 1. Principios Ergonómicos y Estándares Móviles (Apple HIG)
 
-Se registran los elementos, patrones y comportamientos eliminados o rechazados formalmente, cuya reintroducción en el código queda estrictamente prohibida.
+### A. Botones de Acción y Safe Areas Inferiores
+- **Footer Persistente en Modales:** En vistas modales y hojas flotantes (`ModalSheet`), los botones de acción principal (como «Guardar producto», «Completar venta», «Listo») deben residir en un contenedor fijo fuera del área desplazable.
+- **Espaciado con Safe Area:** Se debe utilizar `env(safe-area-inset-bottom)` de forma adaptativa (`pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] sm:pb-3`) para que el botón descanse ergonómicamente sobre el indicador de inicio de iOS sin flotar desproporcionadamente ni quedar cortado.
+- **Acciones Destructivas:** Las acciones críticas (como «Eliminar producto del catálogo») deben ubicarse al final del contenido desplazable y requerir confirmación modal obligatoria, previniendo pulsaciones accidentales sobre el borde inferior.
 
-| Elemento / Patrón Descartado | Componente / Vista Afectada | Motivo de la Eliminación | Solución Definitiva Adoptada |
+### B. Encabezados y Hojas Flotantes (*Bottom Sheets*)
+- **Estructura Arquitectónica:** Encabezado persistente, área central con scroll independiente y footer persistente pegado a la safe-area.
+- **Píldora Táctil (*Handle*):** Píldora horizontal centrada en la parte superior (`w-9 h-1 rounded-full bg-neutral-300 dark:bg-neutral-600`), situada a `10px` del borde superior (`pt-2.5 pb-1`).
+- **Encabezados y Componentes Flotantes Sólidos Sin Desenfoque:**
+  - Fondo 100% opaco sólido (`bg-[var(--bg-elevated)]` o `.quiral-top-header`).
+  - Queda terminantemente prohibido el uso de `backdrop-blur` en cabeceras de scroll, barras flotantes (`CartSummaryBar`), menús desplegables (`TopMenu`) o capas oscurecedoras (`ModalSheet`, `PurgeConfirmModal`, `AuthScreen`). Los filtros de desenfoque causan parpadeos, congelamiento del renderizador y caída de 60fps a 15fps en WebKit iOS Safari.
+- **Proporción de Safe Area Superior:** Utiliza estrictamente `calc(env(safe-area-inset-top, 0px) + 0.625rem)`. No forzar mínimos artificiales (`max(..., 44px)`) que generen espacios vacíos en navegadores web.
+- **Gestos Touch (*Swipe-to-Dismiss*):** Deslizamiento vertical hacia abajo con inercia elástica nativa (`cubic-bezier(0.32, 0.72, 0, 1)`). Los gestos excluyen elementos interactivos (`button`, `input`, `select`, `a`) para permitir pulsaciones inmediatas sin latencia.
+
+### C. Scroll y Protocolo de Espaciado Anti-Colisión (`pb-32`)
+- **Scroll Independiente:** Cada vista o modal gestiona su desplazamiento vertical exclusivo con `overflow-y-auto overscroll-contain` e inercia táctil `-webkit-overflow-scrolling: touch`.
+- **Desfase de Cabecera:** `.quiral-scroll-container` inicia debajo de la barra superior mediante `padding-top: var(--quiral-header-offset)`.
+- **Aislamiento y Bloqueo:** Al abrir un modal, se bloquea el scroll de `document.body` (`overflow: hidden; touch-action: none;`) y se restaura limpiamente al desmontar el componente.
+- **Espaciado Inferior en Vistas Móviles:**
+  - **Vistas Estándar (`SummaryView`, `InventoryView`, `HistoryView`):** Aplicar obligatoriamente `pb-32` (8rem) en el contenedor principal de scroll para garantizar que el último elemento sea visible por encima de la `Navbar` y del `FloatingCartFAB`.
+  - **Punto de Venta (`PosView`):** Utilizar padding dinámico: `${cartUnits > 0 ? "pb-44 sm:pb-36" : "pb-32"}` para que la barra de cobro flotante (`CartSummaryBar`) no tape las tarjetas de venta.
+  - **Entorno Escritorio (`md:`):** El padding se reduce a `md:pb-12` y `.quiral-scroll-container` aplica `padding-bottom: 2rem` para eliminar espacios muertos innecesarios.
+
+### D. Tipografía Elástica y Control de Desbordamiento Numérico
+- **Pila Tipográfica:** Tipografía de sistema Apple (`-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto...`).
+- **Números Tabulares:** Uso obligatorio de la clase `.tabular-nums` en precios, existencias, fechas y cifras monetarias.
+- **Escala Adaptativa para Cifras de Gran Magnitud (COP):**
+  - Cifras monetarias de 9–10 dígitos (ej. `$150.000.000` o `$2.460.000`) en tarjetas de métricas deben usar escala fluida: `text-base min-[380px]:text-lg sm:text-xl md:text-2xl font-bold tabular-nums tracking-tight truncate`. Queda descartado el uso de tamaños rígidos sobredimensionados (`text-3xl`, `text-2xl` fijo).
+  - **Precios en Tarjetas de Catálogo (`ProductCard`):** Contenidos en un bloque flexible `flex items-center justify-between min-w-0 gap-2` con `shrink-0 max-w-[55%]` y escala `text-sm sm:text-base md:text-lg font-extrabold whitespace-nowrap`. El título adyacente utiliza `min-w-0 flex-1 truncate`.
+  - **Filas de Costo, Margen e Ingresos:** Los desgloses de costos y utilidades aplican `flex flex-wrap items-center justify-between gap-1.5` o `gap-2` para que cifras extensas salten de línea sin expandir las tarjetas ni romper el contenedor.
+- **Estados Vacíos Nativos Apple HIG:** Todas las listas filtrables (`PosView`, `InventoryView`, `HistoryView`, `SalesPerformanceModal`) deben incluir un estado vacío estilizado con contenedor redondeado `rounded-3xl border border-[var(--border-color)] bg-[var(--bg-elevated)]`, texto descriptivo y botón de restablecimiento rápido.
+
+### E. Sistema Visual Dual OLED y Tema Instantáneo
+- **Negro Puro OLED:** En modo oscuro, el fondo primario es `#000000` (OLED absoluto), con superficies elevadas en `#141416` y bordes en `#262629`. En modo claro, fondo `#f2f2f7`, superficies `#ffffff` y bordes `#e5e5ea`.
+- **Anulación Central de Transición de Color:** La clase `.transition-colors` se anula a nivel CSS (`transition-property: none !important;`). Los cambios de tema son instantáneos para evitar parpadeos blanco/negro en pantallas OLED. Las animaciones de `transform` y `opacity` continúan activas para feedback táctil.
+- **Liquid Glass Selectivo:** Reservado exclusivamente para la `Navbar` flotante inferior (saturación `1.8`, desenfoque `42px`, fallback opaco), donde no existe desplazamiento de texto por detrás. Las cabeceras superiores, modales y barras de resumen se mantienen 100% opacas sobre fondos OLED sólidos.
+
+### F. Navegación Adaptativa Dual (Móvil vs Escritorio)
+- **Móvil (`< 768px`):** Barra flotante inferior `Navbar` con desmontaje reactivo dinámico (`!hasActiveModal`) para erradicar colisiones de apilamiento (*stacking context*). Botón flotante `FloatingCartFAB` en `right-3 min-[380px]:right-4 bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))]`.
+- **Escritorio (`>= 768px`):** Barra lateral fija [`DesktopSidebar.tsx`](./src/components/DesktopSidebar.tsx) (`w-64`) con acceso directo a vistas, métricas, switch de tema y control de *Modo Administrador*. La `Navbar` y el `FloatingCartFAB` se ocultan (`md:hidden`), y la cabecera ajusta su offset lateral (`md:left-64`).
+
+### G. Controles de Sistema y Modo Administrador
+- **Botón Unificado `AdminCompactButton`:** Control único para alternar el modo administrador. Se muestra como icono compacto circular en pantallas estrechas (`< 420px`) y como píldora expandida con texto en pantallas mayores. Prohibido duplicar textos o botones de administrador en el cuerpo de las vistas.
+- **Controles de Inventario Pegajosos:** Buscador y filtros de categoría usan `.inventory-sticky-controls` adhiriéndose a `top: 0` dentro del scrollport sin duplicar el offset superior.
+
+---
+
+## 2. Historial de Descarte Inviolable
+
+Queda formalmente prohibida la reintroducción de los siguientes elementos, patrones o estilos previamente rechazados:
+
+| Elemento / Patrón Descartado | Ámbito Afectado | Justificación del Descarte | Solución Definitiva |
 | :--- | :--- | :--- | :--- |
-| **Cabecera translúcida con `backdrop-blur` en vistas con scroll** | `TopHeader.tsx`, `InventoryView.tsx` | WebKit en iOS Safari y modo PWA standalone genera artefactos visuales graves (texto cortado/borroso a la mitad y parpadeo al hacer scroll). | Cabeceras con fondo sólido opaco (`bg-[var(--bg-elevated)]` / `.quiral-top-header`) y scroll desacoplado. |
-| **Navbar global visible simultáneamente con modales abiertos** | `App.tsx`, `Navbar.tsx` | La Navbar con `fixed z-40` colisionaba físicamente con los modales abiertos en `<main>`, solapando botones inferiores y controles de lotes. | Modales montados al nivel raíz y desmontaje dinámico de la Navbar (`!hasActiveModal`). |
-| **Botón de acción principal al final del formulario desplazable** | `NewProductModal.tsx` | En pantallas de 4.7" a 6.1", obligaba al usuario a deslizar formularios largos para poder guardar, y el botón quedaba cortado. | Botón de acción principal fijado en el footer persistente inferior (`footer` de `ModalSheet`) con `env(safe-area-inset-bottom)`. |
-| **Padding inferior inflado en el footer de modales** | `ModalSheet.tsx` (`pb-[calc(1.25rem+...)]`) | Dejaba el botón «Listo» demasiado separado del borde inferior, luciendo flotante y desproporcionado respecto a las guías HIG. | Padding optimizado `pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] sm:pb-3`. |
-| **Safe-area con `max(..., 44px)` forzado en cabecera** | `src/index.css` (`.quiral-top-header`) | En Safari browser (sin notch en web view) agregaba 44px artificiales de espacio vacío sobre "Inventario", y duplicaba el desfase en el scroll container. | Cálculo dinámico puro `calc(env(safe-area-inset-top, 0px) + 0.625rem)`. |
-| **Duplicación del control/texto «Modo Administrador»** | `InventoryView.tsx`, `TopHeader.tsx` | Existía como botón desbordado en cabecera y a la vez como etiqueta redundante dentro de la tarjeta de auditoría. | Centralizado en el componente único `AdminCompactButton` en cabecera; etiqueta de auditoría simplificada a «Activo». |
-| **Texto de "Modo administrador" desbordado y sin responsive** | `TopHeader.tsx` | En pantallas de 375-390px, el texto completo colisionaba con los 3 botones de acción superior forzando saltos de línea. | `AdminCompactButton` colapsa a botón táctil de icono en `<420px` y muestra texto completo en pantallas mayores. |
-| **Incremento arbitrario de lote sin balanceo de stock** | `InventoryContext.tsx` (`adjustMasterStock`) | Incrementar el total sumaba siempre al lote 0 y decrementar vaciaba secuencialmente, generando inconsistencias con la distribución de inventario. | Incremento al lote con mayor cantidad y decremento al lote con mayor stock disponible (desempate determinista, sin negativos). |
-| **Bloque decorativo de "Autocompletado con Chips"** | `NewProductModal.tsx` | Elemento redundante que generaba espacio muerto y confusión visual. | Eliminado por completo; reemplazado por selectores directos de categoría y subtipo. |
-| **Término informal "Cubito Cargador"** | Catálogo general | Jerga comercial inconsistente con la nomenclatura técnica. | Estandarizado a **"Cubo"** en toda la interfaz y datos. |
-| **Pestaña activa en negro sólido en modo claro** | `Navbar.tsx` | Rompía la jerarquía visual de iOS HIG, generando bajo contraste. | Fondo activo en azul de sistema `#007AFF` con texto e icono en blanco. |
-| **Animaciones declaradas sin implementación CSS** | `InventoryView.tsx`, `TopMenu.tsx`, `ModalSheet.tsx` | Las clases de animación no producían una transición consistente y no existía una alternativa global para usuarios con movimiento reducido. | Utilidades CSS locales de entrada y regla `prefers-reduced-motion` con fallback inmediato. |
-| **Variaciones de fondo por vista (`bg-zinc-50`, `dark:bg-zinc-950`) e índigo** | `InventoryView.tsx`, `App.tsx`, `Navbar.tsx` | Fragmentaba la identidad visual global y rompía la consistencia nativa dual OLED. | Unificación total del fondo nativo (`bg-[var(--bg-primary)]`) y acento azul (`blue-500`). Diferenciación concentrada exclusivamente en `TopHeader` mediante props. |
-| **Botón flotante de venta localizado en vistas hijas (`HistoryView.tsx`)** | `HistoryView.tsx` | `z-index` inferior al Navbar provocaba corte visual con la barra y falta de acceso rápido desde Inventario y Resumen. | Centralizado en layout raíz (`App.tsx`) con `FloatingCartFAB` (`z-40`, `bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))]`) activo en todas las vistas excepto Vender y oculto en modales. |
+| **Cabecera translúcida con `backdrop-blur` en vistas con scroll** | `TopHeader.tsx`, `InventoryView.tsx`, `PosView.tsx` | Genera artefactos visuales graves en WebKit Safari (texto borroso/cortado a la mitad al desplazar). | Cabeceras 100% sólidas opacas (`.quiral-top-header`) y scroll desacoplado. |
+| **`backdrop-blur` en barras flotantes (`CartSummaryBar`), menús (`TopMenu`) y modales (`ModalSheet`, `AuthScreen`, `PurgeConfirmModal`)** | Componentes flotantes y modales | Provoca tartamudeo en animaciones touch, recompilaciones del GPU compositor y caídas de 60fps a 15fps en iOS WebKit. | Fondos sólidos OLED `bg-[var(--bg-elevated)]` con sombras profundas y capas oscurecedoras limpias `bg-black/60`. |
+| **Navbar global visible simultáneamente con modales activos** | `App.tsx`, `Navbar.tsx` | Colisionaba con los botones inferiores de acción en modales y hojas flotantes. | Desmontaje dinámico al nivel raíz mediante `!hasActiveModal`. |
+| **Botón de acción principal al final del formulario desplazable** | `NewProductModal.tsx` | Obligaba a desplazamientos excesivos y provocaba cortes visuales en pantallas pequeñas. | Botón anclado en el footer persistente (`ModalSheet`) con `env(safe-area-inset-bottom)`. |
+| **Padding inferior insuficiente (`pb-24`) en vistas de scroll** | `SummaryView`, `InventoryView`, `PosView`, `HistoryView` | Las tarjetas finales quedaban ocultas bajo la `Navbar` y el `FloatingCartFAB`. | Estandarización de `pb-32` global y `pb-44` en POS con carrito activo. |
+| **Tipografía fija sobredimensionada (`text-3xl`, `text-2xl` rígido) en métricas** | `SummaryView`, `InventoryView`, `CycleClosingModal` | Cifras de 9–10 dígitos COP (`$150.000.000`) desbordaban las tarjetas en móviles. | Escala elástica `text-base min-[380px]:text-lg sm:text-xl md:text-2xl font-bold tabular-nums tracking-tight truncate`. |
+| **Padding inflado en footer de modales (`pb-[calc(1.25rem+...)]`)** | `ModalSheet.tsx` | Separaba el botón de acción en exceso del borde inferior, luciendo flotante y no nativo. | Padding optimizado: `pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] sm:pb-3`. |
+| **Safe-area superior con `max(..., 44px)` forzado** | `src/index.css` (`.quiral-top-header`) | Agregaba 44px artificiales de espacio vacío en Safari browser y duplicaba el desfase de scroll. | Cálculo dinámico puro: `calc(env(safe-area-inset-top, 0px) + 0.625rem)`. |
+| **Duplicación del control o texto «Modo Administrador»** | `InventoryView.tsx`, `TopHeader.tsx` | Provocaba desbordamientos en cabecera y redundancia visual en auditoría. | Componente unificado `AdminCompactButton` (icono en `<420px`, píldora en `>=420px`). |
+| **Incremento arbitrario de lote sin balanceo de existencias** | `InventoryContext.tsx` (`adjustMasterStock`) | Incrementar sumaba siempre al lote 0 y decrementar vaciaba secuencialmente sin balance. | Incremento al lote con mayor stock y decremento al lote con mayor stock disponible (determinista). |
+| **Bloque decorativo de "Autocompletado con Chips"** | `NewProductModal.tsx` | Espacio muerto sin utilidad funcional que generaba confusión visual. | Selectores directos de categoría y atributos específicos. |
+| **Término informal "Cubito Cargador"** | Catálogo general | Nomenclatura no estándar. | Estandarizado estrictamente a **"Cubo"** en UI y datos. |
+| **Pestaña activa en negro sólido en modo claro** | `Navbar.tsx` | Bajo contraste y ruptura de las guías de diseño de iOS HIG. | Azul de sistema `#007AFF` con texto e icono en blanco. |
+| **Animaciones sin implementación CSS o sin soporte de accesibilidad** | Vistas globales | Transiciones inconsistentes que afectaban a usuarios sensibles al movimiento. | Utilidades CSS locales combinadas con `prefers-reduced-motion` global. |
+| **Variaciones de fondo por vista (`bg-zinc-50`, `dark:bg-zinc-950`)** | Vistas globales | Fragmentaba la identidad visual dual OLED. | Unificación con variables CSS nativas `--bg-primary` y `--bg-elevated`. |
 
 ---
 
-## 3. Registro de Decisiones
+## 3. Registro de Decisiones de Diseño
 
-| Decisión Arquitectónica / Visual | Estado | Fecha de Registro | Impacto en el Proyecto |
+| Decisión de Diseño / UI | Estado | Fecha | Impacto Técnico |
 | :--- | :---: | :---: | :--- |
-| **Fijación de botones de acción en footer inferior persistente** | **Confirmada** | 2026-10-24 | Obligatorio en `ModalSheet`, `NewProductModal` y `ProductDetailModal`. |
-| **Ocultamiento de Navbar durante modales activos** | **Confirmada** | 2026-10-24 | Implementado en `App.tsx` con `!hasActiveModal`. |
-| **Cabecera sólida sin blur en vistas móviles** | **Confirmada** | 2026-10-24 | Implementado en `index.css` y `TopHeader.tsx`. |
-| **Componente unificado `AdminCompactButton`** | **Confirmada** | 2026-10-24 | Reemplaza todas las apariciones dispersas; responsive (<420px icon, >=420px pill). |
-| **Cálculo dinámico puro de Safe Area sin mínimos forzados** | **Confirmada** | 2026-10-24 | Eliminado `max(..., 44px)` en `index.css` para erradicar espacios vacíos. |
-| **Balanceo de unidades por lote con criterio determinista** | **Confirmada** | 2026-10-24 | Implementado en `InventoryContext.tsx` (`adjustMasterStock`). |
-| **Padding reducido en footer de modales (`0.5rem` + safe-area)** | **Confirmada** | 2026-10-24 | Ajustado en `ModalSheet.tsx` para acercar el botón «Listo» al borde. |
-| **Diferenciación de vistas concentrada en `TopHeader` por props** | **Confirmada** | 2026-10-24 | Fondo nativo y acento azul unificados en toda la app; `TopHeader` recibe `variant="accent"` para modularidad escalable. |
-| **Migración de gestos a Framer Motion** | **Descartada** | 2026-10-24 | Descartada para evitar dependencias pesadas innecesarias; resuelto con eventos táctiles nativos. |
-| **Navegación Desktop mediante Sidebar persistente (>= 768px)** | **Confirmada** | 2026-10-25 | Implementado en `DesktopSidebar.tsx` y `App.tsx`; oculta Navbar móvil y expande catálogo a grilla responsiva de 2 columnas. |
+| **Footer persistente para acciones principales** | **Confirmada** | 2026-10-24 | Obligatorio en `ModalSheet`, `NewProductModal`, `CheckoutSheet` y `ProductDetailModal`. |
+| **Desmontaje de Navbar durante modales** | **Confirmada** | 2026-10-24 | Implementado en `App.tsx` con `!hasActiveModal`. |
+| **Cabeceras sólidas opacas sin blur** | **Confirmada** | 2026-10-24 | Estandarizado en `index.css` (`.quiral-top-header`) y `TopHeader.tsx`. |
+| **Componente unificado `AdminCompactButton`** | **Confirmada** | 2026-10-24 | Responsive según viewport width (<420px icono, >=420px píldora). |
+| **Cálculo de Safe Area sin mínimos forzados** | **Confirmada** | 2026-10-24 | Erradicación de `max(..., 44px)` en cabeceras. |
+| **Balanceo determinista de lotes** | **Confirmada** | 2026-10-24 | Algoritmo determinista en `InventoryContext.tsx`. |
+| **Navegación Desktop con `DesktopSidebar` (>= 768px)** | **Confirmada** | 2026-10-25 | Catálogo expandido a 2 columnas y sidebar lateral fijo. |
+| **Tipografía elástica para cifras COP de 9–10 dígitos** | **Confirmada** | 2026-10-25 | Aplicación de `text-lg sm:text-xl md:text-2xl` y `max-w-[55%]` con truncamiento en `ProductCard`. |
+| **Padding inferior anti-colisión `pb-32` global y `pb-44` en POS** | **Confirmada** | 2026-10-25 | Espaciado estandarizado en contenedores de scroll para despejar Navbar, FAB y CartSummaryBar. |
+| **Anulación central de `.transition-colors`** | **Confirmada** | 2026-10-25 | Cambios de tema OLED instantáneos sin transiciones parpadeantes. |
+| **Protocolo de Traducción Google Stitch -> Quiral** | **Confirmada** | 2026-10-25 | Mapeo obligatorio de tokens de Stitch a variables Dual OLED, escala elástica y `pb-32`. |
+| **Erradicación de `backdrop-blur` en modales y barras flotantes** | **Confirmada** | 2026-10-25 | `CartSummaryBar`, `ModalSheet`, `TopMenu`, `AuthScreen`, `PurgeConfirmModal` migrados a fondos sólidos OLED `bg-[var(--bg-elevated)]` y capas opacas `bg-black/60`. |
+| **Blindaje numérico elástico en modales de cierre y métricas** | **Confirmada** | 2026-10-25 | `CycleClosingModal` y `SalesPerformanceModal` adaptados con tokens de borde y `.tabular-nums` elástico anti-desborde. |
+| **Estados vacíos nativos Apple HIG** | **Confirmada** | 2026-10-25 | Añadidos contenedores consistentes de resultado vacío con acción de reseteo en `PosView` e `InventoryView`. |
 
 ---
 
-## 4. Protocolo Obligatorio para Resolver Conflictos
+## 4. Protocolo de Integración y Traducción desde Google Stitch
 
-Antes de cualquier modificación, consulta las directrices de este documento y el **Historial de Descarte**.
+Al consultar, importar o adaptar diseños generados en la plataforma **Google Stitch** (o vía su servidor Stitch MCP):
 
-Si una solicitud contradice una decisión confirmada o intenta reintroducir un elemento descartado:
-1. **Detención:** Detén inmediatamente la parte conflictiva.
-2. **Explicación:** Explica la regla existente y la contradicción técnica.
-3. **Alternativas:** Presenta las opciones disponibles de forma clara y concreta.
-4. **Validación:** Espera la confirmación del usuario antes de modificar esa parte del código.
-5. **Actualización:** Tras la decisión, actualiza este documento, elimina la opción descartada tanto del código como de la documentación, y registra el cambio en el `[Historial de Descarte]`.
+1. **Mapeo Semántico Dual OLED:** Reemplazar colores estáticos (`bg-white`, `bg-slate-100`, `text-slate-900`) por tokens variables (`bg-[var(--bg-elevated)]`, `bg-[var(--bg-primary)]`, `text-[var(--text-primary)]`).
+2. **Sanitización de Anti-Patrones:**
+   - Eliminar `backdrop-blur` en cabeceras de scroll, modales y barras flotantes; asegurar fondos 100% sólidos.
+   - Extraer botones de acción principal en modales hacia el slot `footer` persistente de `ModalSheet`.
+3. **Protección de Cifras y Formato:** Toda cifra monetaria adaptada de Stitch debe llevar `.tabular-nums`, escala elástica (`text-lg sm:text-xl md:text-2xl`) con `truncate`, y ser procesada con `formatCOP`.
+4. **Contención Anti-Colisión:** Todo contenedor principal de scroll adaptado debe aplicar `pb-32` (o `pb-44` en POS con carrito activo) para garantizar visibilidad sobre la `Navbar` y `FloatingCartFAB`.
+5. **Skills de Automatización:** Para el runbook paso a paso, la configuración MCP y las directrices de diseño, consulta las skills [`.agents/skills/stitch-design/SKILL.md`](./.agents/skills/stitch-design/SKILL.md), [`.agents/skills/google-stitch/SKILL.md`](./.agents/skills/google-stitch/SKILL.md) y el índice general [`.agents/SKILLS_INDEX.md`](./.agents/SKILLS_INDEX.md).

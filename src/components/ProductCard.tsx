@@ -57,36 +57,36 @@ export const ProductCard = React.memo(function ProductCard({
           handleClick();
         }
       }}
-      className={`rounded-2xl border border-zinc-100 dark:border-white/5 bg-[var(--bg-elevated)] p-3.5 shadow-sm outline-none transition-colors duration-75 select-none focus-visible:ring-2 focus-visible:ring-[#007aff] ${
+      className={`rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-3.5 shadow-sm outline-none transition-colors duration-75 select-none focus-visible:ring-2 focus-visible:ring-[#007aff] ${
         isAvailable || mode === "inventory"
           ? "cursor-pointer active:scale-[0.99] hover:border-blue-500/40"
           : "opacity-50 cursor-not-allowed"
       } ${className}`}
     >
-      {/* 1. Fila Superior: Título completo (hasta 2 líneas) + subtítulo a la izquierda, Precio a la derecha */}
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0 pr-2">
-          <h3 className="line-clamp-2 text-[15px] font-semibold leading-snug text-[var(--text-primary)]">
+      {/* 1. Fila Superior: Título completo + subtítulo a la izquierda, Precio a la derecha con escala responsive */}
+      <div className="flex items-center justify-between min-w-0 gap-2">
+        <div className="flex-1 min-w-0 pr-1">
+          <h3 className="line-clamp-2 text-sm sm:text-[15px] font-semibold leading-snug text-[var(--text-primary)]">
             {product.name}
           </h3>
           {product.subtitle && (
-            <p className="mt-0.5 truncate text-xs text-[var(--text-secondary)]">
+            <p className="mt-0.5 truncate text-[11px] sm:text-xs text-[var(--text-secondary)]">
               {product.subtitle}
             </p>
           )}
         </div>
 
-        <div className="shrink-0 text-right">
-          <span className="tabular-nums whitespace-nowrap text-base sm:text-lg font-extrabold text-[var(--text-primary)]">
+        <div className="text-right shrink-0 max-w-[55%]">
+          <span className="tabular-nums text-sm sm:text-base md:text-lg font-extrabold text-[var(--text-primary)] leading-tight whitespace-nowrap">
             {formatCOP(product.price)}
           </span>
         </div>
       </div>
 
-      {/* 2. Separador horizontal sutil y disimulado */}
-      <div className="mt-3 flex items-center justify-between border-t border-zinc-100 dark:border-white/5 pt-2.5">
+      {/* 2. Separador horizontal sutil con wrap protector ante cifras largas */}
+      <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 border-t border-[var(--border-color)] pt-2">
         {/* Footer Izquierda: Unidades y puntos de lote */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 shrink-0">
           <span
             className={`tabular-nums text-xs font-bold ${
               stock > 0 ? "text-[#30d158]" : "text-[#ff3b30]"
@@ -116,12 +116,12 @@ export const ProductCard = React.memo(function ProductCard({
             {inCart > 0 ? (
               <span
                 aria-label={`${inCart} unidades seleccionadas`}
-                className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-500 text-xs font-bold leading-none text-white shadow-sm"
+                className="flex h-7 min-w-7 px-1.5 items-center justify-center rounded-full bg-blue-500 text-xs font-bold leading-none text-white shadow-sm"
               >
                 {inCart}
               </span>
             ) : isAvailable ? (
-              <span className="pointer-events-none rounded-full bg-zinc-100 dark:bg-white/10 px-3 py-1 text-xs font-semibold text-blue-500 transition-colors duration-75">
+              <span className="pointer-events-none rounded-full bg-black/5 dark:bg-white/10 px-2.5 py-1 text-xs font-semibold text-[#007aff] dark:text-[#0a84ff] transition-colors duration-75">
                 + Agregar
               </span>
             ) : (
@@ -131,12 +131,12 @@ export const ProductCard = React.memo(function ProductCard({
             )}
           </div>
         ) : showCosts ? (
-          <div className="text-right text-xs shrink-0">
-            <span className="text-[var(--text-secondary)]">Costo: </span>
+          <div className="text-right text-[11px] sm:text-xs flex items-center gap-1.5 shrink-0 ml-auto flex-wrap justify-end">
+            <span className="text-[var(--text-secondary)]">Costo:</span>
             <span className="tabular-nums font-semibold text-[var(--text-primary)]">
               {formatCOP(avgCost)}
             </span>
-            <span className="tabular-nums ml-2 font-bold text-[#30d158]">
+            <span className="tabular-nums font-bold text-[#30d158]">
               +{formatCOP(profitPerUnit)}
             </span>
           </div>
@@ -147,4 +147,3 @@ export const ProductCard = React.memo(function ProductCard({
 });
 
 export default ProductCard;
-

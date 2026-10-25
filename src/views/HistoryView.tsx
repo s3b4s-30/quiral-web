@@ -7,7 +7,7 @@ interface HistoryViewProps {
   onGoToPOS?: () => void;
 }
 
-export default function HistoryView({ onGoToPOS }: HistoryViewProps) {
+export default function HistoryView({ onGoToPOS: _onGoToPOS }: HistoryViewProps) {
   const { sales, toggleItemWarranty } = useInventory();
   const [openSaleId, setOpenSaleId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -55,7 +55,7 @@ export default function HistoryView({ onGoToPOS }: HistoryViewProps) {
         </div>
 
         {/* Listado de Ventas en Historial */}
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-3 pb-24">
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-3 pb-32">
           {filteredSales.length === 0 ? (
             <div className="col-span-full rounded-3xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-10 text-center shadow-sm">
               <p className="text-sm font-medium text-[var(--text-secondary)]">
@@ -96,8 +96,8 @@ export default function HistoryView({ onGoToPOS }: HistoryViewProps) {
                       </p>
                     </div>
 
-                    <div className="shrink-0 text-right">
-                      <span className="tabular-nums whitespace-nowrap text-base sm:text-lg font-extrabold text-[var(--text-primary)]">
+                    <div className="shrink-0 text-right pl-2">
+                      <span className="tabular-nums whitespace-nowrap text-sm sm:text-base md:text-lg font-extrabold text-[var(--text-primary)]">
                         {formatCOP(sale.totalAmount)}
                       </span>
                     </div>
@@ -119,16 +119,16 @@ export default function HistoryView({ onGoToPOS }: HistoryViewProps) {
                             className="rounded-xl bg-black/[0.02] dark:bg-white/[0.03] p-3 border border-[var(--border-color)] space-y-2"
                           >
                             <div className="flex items-start justify-between gap-2">
-                              <span className="text-sm font-semibold text-[var(--text-primary)]">
+                              <span className="text-sm font-semibold text-[var(--text-primary)] min-w-0 flex-1 truncate">
                                 {item.qty}× {item.productName}
                               </span>
-                              <span className="tabular-nums text-xs font-semibold text-[var(--text-secondary)]">
+                              <span className="tabular-nums text-xs font-semibold text-[var(--text-secondary)] shrink-0 whitespace-nowrap">
                                 {formatCOP(item.unitPrice * item.qty)}
                               </span>
                             </div>
 
-                            {/* Fila de Cobertura de Garantía */}
-                            <div className="flex items-center justify-between gap-2 pt-0.5">
+                            {/* Fila de Cobertura de Garantía con flex-wrap para evitar solapamientos */}
+                            <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
                               <span
                                 className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
                                   w.status === "claimed"

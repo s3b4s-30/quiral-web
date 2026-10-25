@@ -121,17 +121,39 @@ export default function PosView({ onCheckoutStateChange }: PosViewProps) {
             </div>
           </div>
 
-          {/* Listado de tarjetas de productos en grilla adaptable */}
-          <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 ${cartUnits > 0 ? "pb-28" : "pb-24"}`}>
-            {filteredProducts.map((product) => (
-              <PosProductCard
-                key={product.id}
-                product={product}
-                inCart={cartQuantities.get(product.id) ?? 0}
-                onAddToCart={handleAddToCart}
-                supplierColors={supplierColors}
-              />
-            ))}
+          {/* Listado de tarjetas de productos en grilla adaptable con margen inferior anti-colisión */}
+          <div
+            className={`grid grid-cols-1 md:grid-cols-2 gap-3 ${
+              cartUnits > 0 ? "pb-44 sm:pb-36" : "pb-32"
+            }`}
+          >
+            {filteredProducts.length === 0 ? (
+              <div className="col-span-full rounded-3xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-10 text-center shadow-sm">
+                <p className="text-sm font-medium text-[var(--text-secondary)]">
+                  No se encontraron productos para vender que coincidan con la búsqueda o categoría.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuery("");
+                    setCategory("Todos");
+                  }}
+                  className="mt-4 inline-flex items-center justify-center rounded-xl bg-[#007aff] px-4 py-2 text-xs font-bold text-white shadow-sm"
+                >
+                  Restablecer filtros
+                </button>
+              </div>
+            ) : (
+              filteredProducts.map((product) => (
+                <PosProductCard
+                  key={product.id}
+                  product={product}
+                  inCart={cartQuantities.get(product.id) ?? 0}
+                  onAddToCart={handleAddToCart}
+                  supplierColors={supplierColors}
+                />
+              ))
+            )}
           </div>
         </div>
       </div>

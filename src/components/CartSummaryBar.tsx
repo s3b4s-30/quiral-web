@@ -20,21 +20,21 @@ export default function CartSummaryBar({ units, total, onCheckout }: CartSummary
         type="button"
         onClick={onCheckout}
         aria-label={`Ver carrito: ${units} ${units === 1 ? "producto" : "productos"}, total ${formatCOP(total)}. Toca para cobrar.`}
-        className="w-full flex items-center justify-between gap-3 rounded-full border border-blue-500/15 dark:border-blue-500/25 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl p-2.5 sm:p-3 text-zinc-900 dark:text-white shadow-[0_8px_30px_rgb(0,0,0,0.08)] active:scale-[0.98] transition-transform duration-100 outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+        className="w-full flex items-center justify-between gap-2.5 rounded-full border border-[var(--border-color)] bg-[var(--bg-elevated)] p-2.5 sm:p-3 text-[var(--text-primary)] shadow-2xl shadow-black/15 dark:shadow-black/50 active:scale-[0.98] transition-transform duration-100 outline-none focus-visible:ring-2 focus-visible:ring-[#007aff]"
       >
         {/* Contenido Izquierdo: Ícono circular azul con resplandor + Textos */}
-        <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
           <span
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#007aff] text-white shadow-md shadow-blue-500/20"
             aria-hidden="true"
           >
             <ShoppingCart size={19} />
           </span>
           <div className="min-w-0 text-left">
-            <p className="truncate text-sm font-bold leading-tight">
+            <p className="truncate text-sm font-bold leading-tight text-[var(--text-primary)]">
               {units} {units === 1 ? "producto" : "productos"}
             </p>
-            <p className="truncate text-xs text-zinc-500 dark:text-zinc-400 leading-tight mt-0.5">
+            <p className="truncate text-xs text-[var(--text-secondary)] leading-tight mt-0.5">
               Toca para revisar o cobrar
             </p>
           </div>
@@ -42,11 +42,11 @@ export default function CartSummaryBar({ units, total, onCheckout }: CartSummary
 
         {/* Contenido Derecho: Botón píldora azul con resplandor, monto y flecha en círculo blanco */}
         <span
-          className="tabular-nums flex shrink-0 items-center gap-2 rounded-full bg-blue-500 pl-3.5 pr-2 py-1.5 text-sm font-extrabold text-white shadow-[0_4px_14px_rgba(59,130,246,0.4)]"
+          className="tabular-nums flex shrink-0 items-center gap-1.5 sm:gap-2 rounded-full bg-[#007aff] pl-3 pr-2 py-1.5 text-xs sm:text-sm font-extrabold text-white shadow-md shadow-blue-500/30 whitespace-nowrap"
           aria-hidden="true"
         >
           {formatCOP(total)}
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-blue-500 shadow-sm">
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-[#007aff] shadow-sm">
             <ArrowRight size={12} className="stroke-[3]" />
           </span>
         </span>

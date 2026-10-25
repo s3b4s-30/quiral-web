@@ -1,14 +1,15 @@
 # QUIRAL POS v1.0.1 — Documentación Técnica de Arquitectura y Producción
 
-**Versión:** 1.0.1 — Release Candidate  
-**Estado:** Producción Validada  
-**Fecha de corte:** Octubre 2026  
+**Versión:** 1.0.1 — Producción / Release Candidate  
+**Stack Principal:** React 18 · TypeScript Estricto · Vite 6 · Tailwind CSS 3 · Supabase (PostgreSQL 15+)  
+**Filosofía Visual:** Apple Human Interface Guidelines (HIG) & Dual OLED Nativo  
+**Documentos Complementarios:** [`AGENTS.md`](./AGENTS.md) (Gobernanza) · [`DESIGN_GUIDELINES.md`](./DESIGN_GUIDELINES.md) (Sistema de Diseño) · [`SKILLS_INDEX.md`](./.agents/SKILLS_INDEX.md) (Ecosistema de Habilidades)
 
 ---
 
 ## 1. Visión General de la Arquitectura
 
-Quiral POS es una Progressive Web App (PWA) de alto rendimiento para gestión comercial, inventario multi-lote y facturación en punto de venta. Su diseño combina los principios de **Apple Human Interface Guidelines (HIG)** con una arquitectura desacoplada y reactiva impulsada por **Supabase (PostgreSQL 15+)** y **React 18 con TypeScript estricto**.
+Quiral POS es una Progressive Web App (PWA) de alto rendimiento diseñada para la administración de inventario multi-lote, facturación en punto de venta (POS) y arqueo de caja con soporte multi-tienda (multi-tenant) sobre Supabase.
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -40,9 +41,9 @@ Quiral POS es una Progressive Web App (PWA) de alto rendimiento para gestión co
 
 ## 2. Jerarquía de Componentes y Estrategia Adaptativa
 
-La interfaz utiliza una estrategia adaptativa limpia gobernada en `App.tsx` que no duplica la lógica de negocio ni genera montajes redundantes:
+La interfaz utiliza una estrategia adaptativa limpia gobernada en `App.tsx` que no duplica lógica de negocio ni genera montajes redundantes:
 
-1. **`AppInner` (`src/App.tsx`)**:
+1. **Orquestador Raíz (`AppInner` en `src/App.tsx`)**:
    - Coordina la autenticación mediante `AuthScreen` y el perfil del usuario.
    - Aplica el tema visual dual OLED (`dark` / `light` / `auto`) y sincroniza el meta tag `theme-color` de iOS Safari y standalone PWA.
    - Gobierna la navegación entre pestañas: `inventory`, `sell`, `history` y `summary`.
@@ -68,100 +69,154 @@ La interfaz utiliza una estrategia adaptativa limpia gobernada en `App.tsx` que 
 
 ---
 
-## 3. Flujo de Datos, Estado y Concurrencia
+## 3. Modelo de Datos y Esquema Supabase (PostgreSQL 15+)
 
-### Fuente de Verdad
-La base de datos PostgreSQL en Supabase es la **única fuente de verdad** persistente. El estado de React en `InventoryContext` sirve como espejo reactivo sincronizado.
+### Tablas Principales
+- **`stores`**: Entidad tenant (`id UUID`, `name TEXT`, `slug TEXT`, `owner_id UUID`, `created_at TIMESTAMPTZ`).
+- **`store_members`**: Relación usuario-tienda (`store_id UUID`, `user_id UUID`, `role TEXT`).
+- **`suppliers`**: Proveedores (`id UUID`, `store_id UUID`, `name TEXT`, `color TEXT`).
+- **`products`**: Catálogo de productos (`id UUID`, `store_id UUID`, `name TEXT`, `category TEXT`, `price NUMERIC`, `warranty_days INT`, `batches JSONB[]`, `created_at TIMESTAMPTZ`).
+- **`sales`**: Historial de transacciones comerciales (`id UUID`, `store_id UUID`, `sale_number INT`, `customer_name TEXT`, `payment_method TEXT`, `total_amount NUMERIC`, `items JSONB`, `created_at TIMESTAMPTZ`).
+- **`cycle_closings`**: Arqueos de caja y congelación de métricas de ciclo (`id UUID`, `store_id UUID`, `period_label TEXT`, `total_sold NUMERIC`, `net_profit NUMERIC`, `difference_note TEXT`, `closed_at TIMESTAMPTZ`).
 
-### Transacciones Comerciales Atómicas
-Al completar una venta en `completeSale`:
-1. Se valida que el carrito contenga unidades, que el total sea coherente ($0 \le \text{total} \le \text{subtotal}$) y que ningún lote supere el stock disponible.
-2. Se genera el registro de la venta con snapshots de costo por lote y políticas de garantía.
-3. Se aplica actualización reactiva inmediata en la interfaz.
-4. Si la sesión está conectada a Supabase, se invoca la función RPC atómica `complete_sale(target_store, sale_id, sale_number, sale_created_at, sale_data, lines)` que descuenta el stock de los lotes en una transacción PostgreSQL `SERIALIZABLE` con reversión ante fallos.
+### Políticas de Seguridad (Row Level Security - RLS)
+Todo acceso en Supabase está condicionado a la función de seguridad:
+```sql
+CREATE OR REPLACE FUNCTION is_store_member(target_store UUID)
+RETURNS BOOLEAN SECURITY DEFINER AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM store_members
+    WHERE store_id = target_store AND user_id = auth.uid()
+  );
+$$ LANGUAGE sql;
+```
+Cada operación en el cliente incluye `.eq("store_id", storeId)`, garantizando un aislamiento estricto entre tiendas.
 
-### Sincronización Realtime
+### Procedimientos Almacenados (RPC)
+- **`complete_sale(target_store, sale_id, sale_number, sale_created_at, sale_data, lines)`**:
+  Ejecuta una transacción comercial atómica con nivel de aislamiento `SERIALIZABLE`. Descuenta el stock de cada lote específico en `products.batches`, inserta el registro en `sales` y revierte la operación por completo si algún lote carece de inventario suficiente.
+- **`seed_demo_store(target_store, target_user)`**:
+  Puebla de forma idempotente una tienda con catálogo base de tecnología, lotes por proveedor y 4 meses de historial para el modo demostración.
+
+---
+
+## 4. Estado Global, Sincronización Realtime y Mutaciones
+
+### Fuente Única de Verdad
+La base de datos PostgreSQL en Supabase es la **única fuente de verdad** persistente. El estado de React en `InventoryContext` actúa como espejo reactivo optimista.
+
+### Sincronización Realtime Multicanal
 El canal `realtime:store:${storeId}` se suscribe a eventos `postgres_changes` filtrados por `store_id=eq.${storeId}` en 4 tablas:
-- `products`: Los eventos `UPDATE` actualizan la entidad *in-place* sin desplazar el producto al inicio de la lista. `INSERT` prepende y `DELETE` remueve.
-- `sales`: `INSERT` prepende la nueva venta en el historial y `UPDATE` refresca garantías o notas.
-- `cycle_closings`: `INSERT` registra el nuevo arqueo y `UPDATE` sincroniza métricas.
-- `suppliers`: `INSERT`, `UPDATE` y `DELETE` actualizan inmediatamente la paleta y catálogo sin exigir recarga manual.
+- **`products`**: Eventos `UPDATE` actualizan el producto *in-place* conservando el orden de la lista. `INSERT` añade al inicio y `DELETE` remueve.
+- **`sales`**: `INSERT` prepende la nueva venta en el historial y `UPDATE` refresca estados de garantía o notas.
+- **`cycle_closings`**: `INSERT` registra el nuevo arqueo y `UPDATE` sincroniza métricas.
+- **`suppliers`**: `INSERT`, `UPDATE` y `DELETE` actualizan inmediatamente la paleta y catálogo sin requerir recarga manual.
+
+### Modo Demo Público (30/30)
+Para pruebas inmediatas sin credenciales, existe un modo demo con credenciales públicas y persistencia local protegida que no interfiere con tenants de producción.
 
 ---
 
-## 4. Seguridad y Aislamiento Multi-Tenant
+## 5. Lógica de Negocio Multi-Lote y Control de Stock
 
-1. **Row Level Security (RLS)**:
-   - Todo acceso en Supabase está condicionado a la función de seguridad `is_store_member(target_store)`, que valida que `auth.uid()` pertenezca a la tienda activa en `store_members`.
-2. **Consultas filtradas por Tenant**:
-   - Cada operación cliente incluye `.eq("store_id", storeId)`.
-3. **Credenciales en Cliente**:
-   - La aplicación utiliza exclusivamente la anon key pública de Supabase (`VITE_SUPABASE_ANON_KEY`) sujeta a RLS. No existen service role keys en el frontend.
-4. **Modo Demo 30/30 Aislado**:
-   - Cuenta de prueba pública con bypass de credenciales y sembrado de 4 meses de historial. Protegida con advertencias en consola y bloqueos de seguridad en edición de credenciales de usuario.
-
----
-
-## 5. Sistema de Diseño y Tokens Apple HIG
-
-- **Tipografía:** Pila nativa de Apple (`-apple-system, BlinkMacSystemFont, Segoe UI, Roboto...`).
-- **Números tabulares:** `.tabular-nums` obligatorio en precios, stock y cifras monetarias.
-- **Tokens Dual OLED:**
-  - Modo Claro: Fondo primario `#f2f2f7`, Superficies elevadas `#ffffff`, Bordes `#e5e5ea`.
-  - Modo Oscuro: Fondo primario `#000000` (OLED absoluto), Superficies `#141416`, Bordes `#262629`.
-  - Acento: Azul de sistema iOS `#007aff` / `#0a84ff`.
-  - Estados: Éxito `#30d158` / `#28cd41`, Alerta `#ff9500`, Peligro `#ff3b30`.
-- **Transición de color instantánea:** `.transition-colors` anulada centralmente para evitar parpadeos blanco/negro en cambios de tema OLED.
-- **Cabeceras sólidas:** Ausencia de `backdrop-blur` en vistas con scroll para prevenir artefactos gráficos de renderizado en WebKit Safari.
+1. **Regla de Existencias Totales:**
+   Las existencias totales de un producto (`product.stock`) son el resultado determinista de la suma de sus lotes activos (`product.batches.reduce((sum, b) => sum + b.stock, 0)`). Queda prohibido desfasar el stock maestro de sus lotes.
+2. **Balanceo de Ajuste Maestro (`adjustMasterStock`):**
+   - **Incremento (+1):** Suma la unidad al lote con mayor cantidad de existencias.
+   - **Decremento (-1):** Resta la unidad del lote con mayor inventario disponible, impidiendo saldos negativos.
+3. **Validación Comercial del Carrito:**
+   - La cantidad seleccionada por producto no puede exceder el stock del lote asignado.
+   - El valor total a cobrar debe cumplir: $0 \le \text{total} \le \text{subtotal}$.
+   - Cada producto en venta preserva un snapshot del costo unitario (`unitCostSnapshot`) y días de garantía para cálculos históricos inmutables.
 
 ---
 
-## 6. Convenciones de Formateo (`src/utils/formatters.ts`)
+## 6. Convenciones de Formateo Centralizadas (`src/utils/formatters.ts`)
 
-Todas las operaciones visuales de cifras y fechas pasan por formateadores centralizados:
-- `formatCOP(value)`: Moneda colombiana con separador de miles por punto (`$35.000`).
+Todas las salidas numéricas y temporales pasan por los formateadores globales:
+- `formatCOP(value)`: Moneda colombiana con separador de miles por punto (`$35.000 COP`).
 - `parseCOPInput(raw)`: Extracción segura de dígitos enteros para cálculos financieros.
-- `formatUnits(units)`: Representación compacta de existencias (`10 uds`).
+- `formatUnits(units)`: Formateo abreviado de existencias (`10 uds`).
 - `formatProductCount(count)`: Cardinalidad en español (`1 producto`, `3 productos`).
 - `formatShortDate(date)`: Fecha abreviada (`24 oct`).
 - `formatFullDate(date)`: Fecha completa con año (`24 oct 2026`).
 - `formatDateWithTime(date)`: Fecha con hora exacta de transacción.
-- `getWarrantyStatus(date, days, claimed)`: Estado dinámico de garantía (`active`, `expired`, `claimed`).
+- `getWarrantyStatus(date, days, claimed)`: Estado reactivo de garantía (`active`, `expired`, `claimed`).
 
 ---
 
-## 7. Instrucciones Operativas
+## 7. Arquitectura Responsive, Control de Overflow y Sistema Anti-Colisión Flotante
 
-### Instalación de dependencias
-```bash
-npm install
+### 7.1. Escala Tipográfica Fluida para Cifras de 9–10 Dígitos
+Para evitar desbordamientos horizontales de cifras de millones de pesos colombianos (`$100.000.000` a `$1.500.000.000`) en pantallas estrechas (320px–375px):
+- **Tarjetas de Producto (`ProductCard.tsx` / `PosProductCard.tsx`)**: Precio unitario con escala `text-sm sm:text-base md:text-lg font-extrabold whitespace-nowrap`, reservando `max-w-[55%]` y forzando `min-w-0 flex-1 truncate` en el nombre del producto. La fila inferior de costos y utilidades adopta `flex-wrap items-center justify-between gap-2` con `text-[11px] sm:text-xs`, evitando el ensanchamiento no controlado de las tarjetas.
+- **Tarjetas de Resumen Financiero (`SummaryView.tsx`)**: Grilla adaptada a `grid-cols-1 min-[360px]:grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-3` con tipografía `text-lg sm:text-xl md:text-2xl font-bold tabular-nums tracking-tight truncate`.
+- **Historial de Ventas (`HistoryView.tsx`)**: Cifras de venta principal en `text-sm sm:text-base md:text-lg font-extrabold tabular-nums` y fila de reclamo de garantía con `flex-wrap gap-2`.
+- **Modales de Cierre y Desempeño (`CycleClosingModal.tsx`, `SalesPerformanceModal.tsx`, `CheckoutSheet.tsx`)**: Cifras y comparativas de margen con `flex-wrap gap-1.5` y escala responsive que impide el solapamiento o desborde en hojas flotantes.
+
+### 7.2. Margen Inferior Anti-Colisión y Contenedores de Scroll
+La presencia simultánea de la barra de navegación flotante (`Navbar`), el botón de carrito flotante (`FloatingCartFAB`), y la barra de checkout (`CartSummaryBar`) requería un protocolo de espaciado estricto:
+- **`PosView`**: Espaciado dinámico `${cartUnits > 0 ? "pb-44 sm:pb-36" : "pb-32"}` (evitando que `CartSummaryBar` tape las últimas tarjetas de venta cuando hay unidades, y despejando el FAB y la Navbar cuando está vacío).
+- **`InventoryView` & `HistoryView` & `SummaryView`**: Espaciado inferior de lista estandarizado en `pb-32` (8rem).
+- **`FloatingCartFAB`**: Ubicación en `right-3 min-[380px]:right-4 bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))]`, adaptándose a dispositivos móviles de cualquier ancho.
+- **`.quiral-scroll-container` (`src/index.css`)**: Regla adaptativa en `@media (min-width: 768px)` que define `padding-bottom: 2rem`, eliminando el vacío innecesario en pantallas de escritorio sin barra inferior.
+
+---
+
+## 8. Pipeline de Compilación y Optimización de Paquetes
+
+La compilación utiliza Vite 6 con Rollup optimizado mediante particionamiento manual de módulos (`manualChunks`) en `vite.config.js` y `vite.config.ts`:
+
+```javascript
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+export default defineConfig({
+  plugins: [react()],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-icons': ['lucide-react']
+        }
+      }
+    }
+  }
+})
 ```
 
-### Ejecución en desarrollo
+### Distribución de Chunks en Producción
+- `vendor-supabase`: ~227 kB (librería de base de datos y realtime).
+- `vendor-react`: ~134 kB (núcleo de React y ReactDOM).
+- `vendor-icons`: ~23 kB (paquete de iconografía Lucide).
+- `index`: ~143 kB (código fuente de la aplicación empaquetado).
+- **Resultado:** Cero advertencias de tamaño de chunk y tiempo de carga sub-segundo en conexiones móviles 4G.
+
+---
+
+## 9. Runbooks Operativos
+
+### Desarrollo Local
 ```bash
+npm install
 npm run dev
 ```
 
-### Verificación de tipos TypeScript
+### Verificación de Tipos TypeScript Estricto
 ```bash
 npx tsc --noEmit
 ```
 
-### Compilación para producción (Build)
+### Compilación para Producción (Build)
 ```bash
 npm run build
 ```
-Genera los artefactos minificados en `dist/` divididos en chunks optimizados:
-- `vendor-react` (~134 kB)
-- `vendor-supabase` (~227 kB)
-- `vendor-icons` (~23 kB)
-- `index` (~141 kB)
-Zero warnings de tamaño de chunk y código de salida `0`.
 
 ---
 
-## 8. Limitaciones Técnicas Conocidas
+## 10. Limitaciones Técnicas y Recomendaciones de Despliegue
 
-1. **Modo Demo Público:** La cuenta `30/30` utiliza un bypass local intencional para auditoría comercial; debe desactivarse en despliegues cerrados de producción de un solo tenant.
-2. **Validación en Hardware Físico iOS Standalone:** Las pruebas de `safe-area-inset` y gestos touch se validaron exhaustivamente en emuladores y navegadores basados en WebKit/Chromium; se recomienda prueba de campo final sobre dispositivo físico con Face ID (notch/isla dinámica).
-
+1. **Modo Demo Público:** El bypass de credenciales `30/30` es para evaluación comercial rápida; debe deshabilitarse en despliegues monotienda de producción cerrada mediante variable de entorno.
+2. **Validación en Dispositivos iOS Físicos:** Se recomienda verificar visualmente la distancia con la barra de inicio (*Home Indicator*) en modelos con Dynamic Island o Notch para validar que la safe area coincida exactamente con las directrices HIG.

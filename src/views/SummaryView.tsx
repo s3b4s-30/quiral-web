@@ -69,35 +69,35 @@ export default function SummaryView({ onModalStateChange }: SummaryViewProps) {
       id="summary-scroll"
       className="quiral-scroll-container transition-colors duration-75"
     >
-      <div className="mx-auto max-w-xl md:max-w-4xl lg:max-w-5xl px-4 pb-28">
+      <div className="mx-auto max-w-xl md:max-w-4xl lg:max-w-5xl px-4 pb-32">
         {/* 1. Dashboard Principal de Métricas (Tokens del Sistema Apple HIG) */}
-        <section className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <section className="grid grid-cols-1 min-[360px]:grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-3">
           {/* Tarjeta Ingresos */}
-          <div className="rounded-2xl p-4 bg-[var(--bg-elevated)] border border-[var(--border-color)] shadow-sm transition-colors duration-75">
-            <span className="text-xs font-medium text-[var(--text-secondary)]">
+          <div className="rounded-2xl p-3.5 sm:p-4 bg-[var(--bg-elevated)] border border-[var(--border-color)] shadow-sm transition-colors duration-75 min-w-0">
+            <span className="text-[11px] sm:text-xs font-medium text-[var(--text-secondary)] block">
               Ingresos
             </span>
-            <p className="tabular-nums text-2xl font-bold tracking-tight text-[var(--text-primary)] mt-1">
+            <p className="text-lg sm:text-xl md:text-2xl font-bold tabular-nums tracking-tight truncate text-[var(--text-primary)] mt-1">
               {formatCOP(totals.revenue)}
             </p>
           </div>
 
           {/* Tarjeta Utilidad (Con modo privacidad ojito) */}
-          <div className="rounded-2xl p-4 bg-[var(--bg-elevated)] border border-[var(--border-color)] shadow-sm transition-colors duration-75">
-            <span className="text-xs font-medium text-[var(--text-secondary)]">
+          <div className="rounded-2xl p-3.5 sm:p-4 bg-[var(--bg-elevated)] border border-[var(--border-color)] shadow-sm transition-colors duration-75 min-w-0">
+            <span className="text-[11px] sm:text-xs font-medium text-[var(--text-secondary)] block">
               Utilidad
             </span>
-            <p className="tabular-nums text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400 mt-1">
+            <p className="text-lg sm:text-xl md:text-2xl font-bold tabular-nums tracking-tight truncate text-emerald-600 dark:text-emerald-400 mt-1">
               {!showCosts ? "••••••" : formatCOP(totals.profit)}
             </p>
           </div>
 
           {/* Tarjeta Inventario */}
-          <div className="col-span-2 md:col-span-1 rounded-2xl p-4 bg-[var(--bg-elevated)] border border-[var(--border-color)] shadow-sm transition-colors duration-75">
-            <span className="text-xs font-medium text-[var(--text-secondary)]">
+          <div className="col-span-1 min-[360px]:col-span-2 md:col-span-1 rounded-2xl p-3.5 sm:p-4 bg-[var(--bg-elevated)] border border-[var(--border-color)] shadow-sm transition-colors duration-75 min-w-0">
+            <span className="text-[11px] sm:text-xs font-medium text-[var(--text-secondary)] block">
               Inventario
             </span>
-            <p className="tabular-nums text-2xl font-bold tracking-tight text-amber-500 mt-1">
+            <p className="text-lg sm:text-xl md:text-2xl font-bold tabular-nums tracking-tight truncate text-amber-500 mt-1">
               {!showCosts ? "••••••" : formatCOP(totals.stockValue)}
             </p>
           </div>
@@ -179,15 +179,15 @@ export default function SummaryView({ onModalStateChange }: SummaryViewProps) {
                     </span>
                   </div>
 
-                  {/* Fila Inferior: Vendido y Utilidad en verde */}
-                  <div className="flex items-center justify-between text-xs pt-1 border-t border-[var(--border-color)]">
+                  {/* Fila Inferior: Vendido y Utilidad en verde con protección ante cifras largas */}
+                  <div className="flex flex-wrap items-center justify-between gap-1.5 text-xs pt-1.5 border-t border-[var(--border-color)]">
                     <span className="text-[var(--text-secondary)] font-medium">
                       Vendido:{" "}
                       <strong className="text-[var(--text-primary)] font-bold tabular-nums">
                         {formatCOP(closure.totalSold)}
                       </strong>
                     </span>
-                    <span className="text-emerald-500 font-semibold tabular-nums">
+                    <span className="text-emerald-500 font-semibold tabular-nums ml-auto">
                       Utilidad: {!showCosts ? "••••••" : `+${formatCOP(closure.netProfit)}`}
                     </span>
                   </div>
@@ -227,4 +227,3 @@ export default function SummaryView({ onModalStateChange }: SummaryViewProps) {
     </div>
   );
 }
-

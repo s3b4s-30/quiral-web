@@ -157,7 +157,7 @@ export default function ModalSheet({
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex flex-col justify-end bg-black/60 backdrop-blur-sm sm:items-center sm:justify-center p-0 sm:p-4 transition-opacity duration-[180ms] ease-out ${
+      className={`fixed inset-0 z-50 flex flex-col justify-end bg-black/60 dark:bg-black/75 sm:items-center sm:justify-center p-0 sm:p-4 transition-opacity duration-[180ms] ease-out ${
         isClosing ? "opacity-0" : "opacity-100 animate-in fade-in"
       }`}
       onClick={(e) => {

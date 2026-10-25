@@ -124,22 +124,22 @@ export default function InventoryView({ onOpenSuppliers: _onOpenSuppliers }: Inv
                 Activo
               </span>
             </div>
-            <div className="mt-2.5 grid grid-cols-3 gap-2 text-center">
-              <div className="rounded-xl bg-[var(--bg-elevated)] p-2 border border-[var(--border-color)]">
+            <div className="mt-2.5 grid grid-cols-1 min-[360px]:grid-cols-3 gap-2 text-center">
+              <div className="rounded-xl bg-[var(--bg-elevated)] p-2 border border-[var(--border-color)] min-w-0">
                 <p className="text-[10px] font-medium text-[var(--text-secondary)]">Stock Total</p>
-                <p className="tabular-nums text-sm font-bold text-[var(--text-primary)] mt-0.5">
+                <p className="text-xs min-[400px]:text-sm sm:text-base font-bold tabular-nums tracking-tight text-[var(--text-primary)] mt-0.5 truncate">
                   {inventoryStats.totalStock} uds
                 </p>
               </div>
-              <div className="rounded-xl bg-[var(--bg-elevated)] p-2 border border-[var(--border-color)]">
+              <div className="rounded-xl bg-[var(--bg-elevated)] p-2 border border-[var(--border-color)] min-w-0">
                 <p className="text-[10px] font-medium text-[var(--text-secondary)]">Inversión Costo</p>
-                <p className="tabular-nums text-sm font-bold text-[#ff9500] mt-0.5">
+                <p className="text-xs min-[400px]:text-sm sm:text-base font-bold tabular-nums tracking-tight text-[#ff9500] mt-0.5 truncate">
                   {formatCOP(inventoryStats.totalCost)}
                 </p>
               </div>
-              <div className="rounded-xl bg-[var(--bg-elevated)] p-2 border border-[var(--border-color)]">
+              <div className="rounded-xl bg-[var(--bg-elevated)] p-2 border border-[var(--border-color)] min-w-0">
                 <p className="text-[10px] font-medium text-[var(--text-secondary)]">Utilidad Potencial</p>
-                <p className="tabular-nums text-sm font-bold text-[#30d158] mt-0.5">
+                <p className="text-xs min-[400px]:text-sm sm:text-base font-bold tabular-nums tracking-tight text-[#30d158] mt-0.5 truncate">
                   +{formatCOP(inventoryStats.potentialProfit)}
                 </p>
               </div>
@@ -147,8 +147,8 @@ export default function InventoryView({ onOpenSuppliers: _onOpenSuppliers }: Inv
           </section>
         )}
 
-        {/* 4. Listado de Tarjetas de Productos con Grilla Responsiva */}
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-3 pb-24">
+        {/* 4. Listado de Tarjetas de Productos con Grilla Responsiva y Espaciado Seguro */}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-3 pb-32">
           {filteredProducts.length === 0 ? (
             <div className="col-span-full rounded-3xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-10 text-center shadow-sm">
               <p className="text-sm font-medium text-[var(--text-secondary)]">

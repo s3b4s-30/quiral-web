@@ -245,7 +245,7 @@ export default function CycleClosingModal({
         <button
           type="button"
           onClick={handleConfirm}
-          className="w-full rounded-2xl bg-blue-500 hover:bg-blue-600 py-3.5 text-base font-semibold text-white shadow-[0_4px_14px_rgba(59,130,246,0.4)] active:scale-[0.99] transition-transform select-none"
+          className="w-full rounded-2xl bg-[#007aff] hover:bg-[#006ee6] py-3.5 text-base font-semibold text-white shadow-[0_4px_14px_rgba(0,122,255,0.4)] active:scale-[0.99] transition-transform select-none"
         >
           Confirmar Cierre de Ciclo
         </button>
@@ -255,7 +255,7 @@ export default function CycleClosingModal({
       <section>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-[11px] font-bold tracking-wider text-zinc-400 uppercase mb-1.5 block">
+            <label className="text-[11px] font-bold tracking-wider text-[var(--text-secondary)] uppercase mb-1.5 block">
               Desde
             </label>
             <button
@@ -266,8 +266,8 @@ export default function CycleClosingModal({
               }}
               className={`w-full rounded-2xl border p-3 text-left transition-colors duration-75 select-none ${
                 activeDateField === "start"
-                  ? "border-blue-500 bg-blue-500/10 text-blue-500"
-                  : "border-zinc-200/80 dark:border-white/5 bg-[var(--bg-elevated)] text-[var(--text-primary)]"
+                  ? "border-[#007aff] bg-[#007aff]/10 text-[#007aff] dark:text-[#0a84ff]"
+                  : "border-[var(--border-color)] bg-[var(--bg-elevated)] text-[var(--text-primary)]"
               }`}
             >
               <span className="text-sm font-semibold tabular-nums">
@@ -277,7 +277,7 @@ export default function CycleClosingModal({
           </div>
 
           <div>
-            <label className="text-[11px] font-bold tracking-wider text-zinc-400 uppercase mb-1.5 block">
+            <label className="text-[11px] font-bold tracking-wider text-[var(--text-secondary)] uppercase mb-1.5 block">
               Hasta
             </label>
             <button
@@ -288,8 +288,8 @@ export default function CycleClosingModal({
               }}
               className={`w-full rounded-2xl border p-3 text-left transition-colors duration-75 select-none ${
                 activeDateField === "end"
-                  ? "border-blue-500 bg-blue-500/10 text-blue-500"
-                  : "border-zinc-200/80 dark:border-white/5 bg-[var(--bg-elevated)] text-[var(--text-primary)]"
+                  ? "border-[#007aff] bg-[#007aff]/10 text-[#007aff] dark:text-[#0a84ff]"
+                  : "border-[var(--border-color)] bg-[var(--bg-elevated)] text-[var(--text-primary)]"
               }`}
             >
               <span className="text-sm font-semibold tabular-nums">
@@ -301,7 +301,7 @@ export default function CycleClosingModal({
 
         {/* Selector de Calendario y Hora Desplegable Estilo iOS */}
         {activeDateField && (
-          <div className="mt-3 rounded-2xl border border-zinc-200/80 dark:border-white/5 bg-[var(--bg-elevated)] p-4 shadow-sm animate-in fade-in zoom-in-95 duration-150">
+          <div className="mt-3 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-4 shadow-sm animate-in fade-in zoom-in-95 duration-150">
             {/* Navegación de mes */}
             <div className="flex items-center justify-between mb-3">
               <button
@@ -328,7 +328,7 @@ export default function CycleClosingModal({
             {/* Días de la semana */}
             <div className="grid grid-cols-7 gap-1 text-center mb-1">
               {DAY_LABELS.map((d) => (
-                <span key={d} className="text-[11px] font-bold text-zinc-400">
+                <span key={d} className="text-[11px] font-bold text-[var(--text-secondary)]">
                   {d}
                 </span>
               ))}
@@ -353,7 +353,7 @@ export default function CycleClosingModal({
                     onClick={() => handleDaySelect(dayNum)}
                     className={`h-8 w-8 mx-auto flex items-center justify-center rounded-full text-xs font-semibold transition-transform active:scale-90 ${
                       isSelected
-                        ? "bg-blue-500 text-white font-bold shadow-sm"
+                        ? "bg-[#007aff] text-white font-bold shadow-sm"
                         : "text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/10"
                     }`}
                   >
@@ -365,8 +365,8 @@ export default function CycleClosingModal({
 
             {/* Selector de Hora si withTime está activo */}
             {withTime && (
-              <div className="mt-3.5 pt-3 border-t border-zinc-100 dark:border-white/5 flex items-center justify-between text-xs font-semibold">
-                <span className="flex items-center gap-1.5 text-zinc-400">
+              <div className="mt-3.5 pt-3 border-t border-[var(--border-color)] flex items-center justify-between text-xs font-semibold">
+                <span className="flex items-center gap-1.5 text-[var(--text-secondary)]">
                   <Clock size={14} /> Hora:
                 </span>
                 <input
@@ -380,17 +380,17 @@ export default function CycleClosingModal({
                       handleTimeChange(h, m);
                     }
                   }}
-                  className="rounded-xl bg-zinc-100 dark:bg-white/10 px-3 py-1.5 text-xs font-bold text-[var(--text-primary)] outline-none"
+                  className="rounded-xl bg-black/5 dark:bg-white/10 px-3 py-1.5 text-xs font-bold text-[var(--text-primary)] outline-none"
                 />
               </div>
             )}
 
             {/* Botones de Confirmación / Reset */}
-            <div className="mt-3.5 pt-3 border-t border-zinc-100 dark:border-white/5 flex items-center justify-between">
+            <div className="mt-3.5 pt-3 border-t border-[var(--border-color)] flex items-center justify-between">
               <button
                 type="button"
                 onClick={handleResetDate}
-                className="text-xs font-semibold text-zinc-400 hover:text-[var(--text-primary)] active:scale-95"
+                className="text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95"
               >
                 Reset
               </button>
@@ -398,7 +398,7 @@ export default function CycleClosingModal({
                 type="button"
                 onClick={() => setActiveDateField(null)}
                 aria-label="Confirmar fecha"
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500 text-white shadow-sm active:scale-95"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-[#007aff] text-white shadow-sm active:scale-95"
               >
                 <Check size={16} />
               </button>
@@ -418,7 +418,7 @@ export default function CycleClosingModal({
           aria-checked={withTime}
           onClick={() => setWithTime((prev) => !prev)}
           className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors duration-150 active:scale-95 ${
-            withTime ? "bg-blue-500" : "bg-zinc-300 dark:bg-zinc-700"
+            withTime ? "bg-[#007aff]" : "bg-neutral-300 dark:bg-neutral-700"
           }`}
         >
           <span
@@ -431,20 +431,20 @@ export default function CycleClosingModal({
 
       {/* 3. Resumen Pre-Cierre (Total Vendido y Utilidad Neta) */}
       <div className="grid grid-cols-2 gap-3 select-none">
-        <div className="rounded-2xl border border-zinc-200/80 dark:border-white/5 bg-[var(--bg-elevated)] p-4 shadow-sm">
-          <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+        <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-3.5 sm:p-4 shadow-sm min-w-0">
+          <span className="text-xs font-medium text-[var(--text-secondary)] block">
             Total Vendido
           </span>
-          <p className="tabular-nums text-xl font-extrabold text-[var(--text-primary)] mt-1">
+          <p className="tabular-nums text-base min-[380px]:text-lg sm:text-xl font-extrabold text-[var(--text-primary)] tracking-tight truncate mt-1">
             {formatCOP(rangeStats.sold)}
           </p>
         </div>
 
-        <div className="rounded-2xl border border-zinc-200/80 dark:border-white/5 bg-[var(--bg-elevated)] p-4 shadow-sm">
-          <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+        <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-3.5 sm:p-4 shadow-sm min-w-0">
+          <span className="text-xs font-medium text-[var(--text-secondary)] block">
             Utilidad Neta
           </span>
-          <p className="tabular-nums text-xl font-extrabold text-emerald-500 mt-1">
+          <p className="tabular-nums text-base min-[380px]:text-lg sm:text-xl font-extrabold text-[#30d158] tracking-tight truncate mt-1">
             {!showCosts ? "••••••" : `+${formatCOP(rangeStats.profit)}`}
           </p>
         </div>
@@ -453,7 +453,7 @@ export default function CycleClosingModal({
       {/* 4. Inputs de Arqueo */}
       <section className="space-y-3">
         <div>
-          <label className="text-[11px] font-bold tracking-wider text-zinc-400 uppercase mb-1.5 block">
+          <label className="text-[11px] font-bold tracking-wider text-[var(--text-secondary)] uppercase mb-1.5 block">
             Efectivo real en caja
           </label>
           <input
@@ -462,12 +462,12 @@ export default function CycleClosingModal({
             value={rawCash ? formatCOP(Number(rawCash)) : ""}
             onChange={handleCashChange}
             placeholder={formatCOP(rangeStats.sold)}
-            className="w-full rounded-2xl border border-zinc-200/80 dark:border-white/5 bg-[var(--bg-elevated)] px-3.5 py-3 text-base font-bold text-[var(--text-primary)] outline-none focus:border-blue-500 tabular-nums shadow-sm"
+            className="w-full rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] px-3.5 py-3 text-base font-bold text-[var(--text-primary)] outline-none focus:border-[#007aff] tabular-nums shadow-sm"
           />
         </div>
 
         <div>
-          <label className="text-[11px] font-bold tracking-wider text-zinc-400 uppercase mb-1.5 block">
+          <label className="text-[11px] font-bold tracking-wider text-[var(--text-secondary)] uppercase mb-1.5 block">
             Nota de cierre / descuadre
           </label>
           <input
@@ -475,11 +475,10 @@ export default function CycleClosingModal({
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="Opcional..."
-            className="w-full rounded-2xl border border-zinc-200/80 dark:border-white/5 bg-[var(--bg-elevated)] px-3.5 py-3 text-sm font-medium text-[var(--text-primary)] outline-none focus:border-blue-500 shadow-sm"
+            className="w-full rounded-2xl border border-[var(--border-color)] bg-[var(--bg-elevated)] px-3.5 py-3 text-sm font-medium text-[var(--text-primary)] outline-none focus:border-[#007aff] shadow-sm"
           />
         </div>
       </section>
     </ModalSheet>
   );
 }
-

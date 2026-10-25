@@ -180,12 +180,6 @@ a {
 }
 
 /* 
-  Cabecera fija superior para iOS Safari:
-  Ubicada en fixed top-0, 100% sólida (sin blur), con padding superior suficiente 
-  para descender el texto "Inventario" completamente por debajo de la zona de difuminado 
-  de la barra de estado de iOS (47px en iPhone 12 + espacio estético de 14px).
-*/
-/* 
   Cabecera fija superior nativa (Apple HIG):
   Fondo 100% sólido (sin blur), anclada a top-0 con cálculo limpio de área segura 
   (env(safe-area-inset-top)) sin forzar mínimos artificiales que generen espacios vacíos.
@@ -224,6 +218,12 @@ a {
   overscroll-behavior-y: contain;
   padding-top: var(--quiral-header-offset);
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 5.5rem);
+}
+
+@media (min-width: 768px) {
+  .quiral-scroll-container {
+    padding-bottom: 2rem;
+  }
 }
 
 .inventory-sticky-controls {
