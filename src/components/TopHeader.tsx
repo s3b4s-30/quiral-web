@@ -12,6 +12,7 @@ interface TopHeaderProps {
   theme: Theme;
   onThemeChange: (theme: Theme) => void;
   onOpenSuppliers: () => void;
+  onOpenProfileSecurity?: () => void;
   onLogout: () => void;
   variant?: HeaderVariant;
 }
@@ -41,10 +42,11 @@ export default function TopHeader({
   theme,
   onThemeChange,
   onOpenSuppliers,
+  onOpenProfileSecurity,
   onLogout,
   variant = "default",
 }: TopHeaderProps) {
-  const { setIsNewProductModalOpen, setIsPurgeModalOpen, showCosts, setShowCosts } = useInventory();
+  const { setIsNewProductModalOpen, setIsPurgeModalOpen, showCosts, setShowCosts, isDemoUser } = useInventory();
 
   const title = TAB_TITLES[activeTab] || "Quiral";
   const isAccent = variant === "accent";
@@ -57,22 +59,33 @@ export default function TopHeader({
     >
       <div className="mx-auto flex max-w-xl items-center justify-between gap-3">
         {/* Título: flexible con truncamiento para nunca empujar los controles */}
-        <button
-          type="button"
-          onClick={() => onTabChange(activeTab)}
-          className="min-w-0 flex-1 text-left"
-          aria-label={`Volver al inicio de ${title}`}
-        >
-          <h1
-            className={`text-2xl sm:text-3xl font-extrabold tracking-tight truncate transition-colors duration-75 ${
-              isAccent
-                ? "text-blue-500 dark:text-blue-400"
-                : "text-[var(--text-primary)]"
-            }`}
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <button
+            type="button"
+            onClick={() => onTabChange(activeTab)}
+            className="min-w-0 text-left"
+            aria-label={`Volver al inicio de ${title}`}
           >
-            {title}
-          </h1>
-        </button>
+            <h1
+              className={`text-2xl sm:text-3xl font-extrabold tracking-tight truncate transition-colors duration-75 ${
+                isAccent
+                  ? "text-blue-500 dark:text-blue-400"
+                  : "text-[var(--text-primary)]"
+              }`}
+            >
+              {title}
+            </h1>
+          </button>
+
+          {isDemoUser && (
+            <span
+              title="Entorno de prueba pública 30/30"
+              className="hidden sm:inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 shrink-0"
+            >
+              Demo 30/30
+            </span>
+          )}
+        </div>
 
         {/* Controles de Acción: Flexbox unificado, sin posiciones absolutas */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
@@ -137,6 +150,7 @@ export default function TopHeader({
             theme={theme}
             onThemeChange={onThemeChange}
             onOpenSuppliers={onOpenSuppliers}
+            onOpenProfileSecurity={onOpenProfileSecurity}
             onLogout={onLogout}
           />
         </div>

@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import AuthScreen from "./components/AuthScreen";
 import FloatingCartFAB from "./components/FloatingCartFAB";
 import Navbar, { type NavbarVariant, type Tab } from "./components/Navbar";
 import NewProductModal from "./components/NewProductModal";
 import ProductDetailModal from "./components/ProductDetailModal";
+import ProfileSecurityModal from "./components/ProfileSecurityModal";
 import PurgeConfirmModal from "./components/PurgeConfirmModal";
 import SuppliersModal from "./components/SuppliersModal";
 import TopHeader from "./components/TopHeader";
@@ -28,11 +30,17 @@ function AppInner() {
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
   const [navbarVariant] = useState<NavbarVariant>("floating");
   const [isSuppliersModalOpen, setIsSuppliersModalOpen] = useState(false);
+  const [isProfileSecurityOpen, setIsProfileSecurityOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
   const [isModalClosing, setIsModalClosing] = useState(false);
 
   const {
+    userProfile,
+    loading,
+    isDemoUser,
+    signOut,
+    refreshData,
     selectedProduct,
     setSelectedProduct,
     showCosts,
@@ -46,8 +54,15 @@ function AppInner() {
   // Ocultar Navbar cuando cualquier modal o vista secundaria esté activa
   // Se restaura inmediatamente al iniciar la animación de cierre (<=180ms ease-out)
   const hasActiveModal = Boolean(
-    (selectedProduct || isNewProductModalOpen || isPurgeModalOpen || isSuppliersModalOpen || isCheckoutOpen || isSummaryModalOpen)
-    && !isModalClosing
+    (
+      selectedProduct ||
+      isNewProductModalOpen ||
+      isPurgeModalOpen ||
+      isSuppliersModalOpen ||
+      isProfileSecurityOpen ||
+      isCheckoutOpen ||
+      isSummaryModalOpen
+    ) && !isModalClosing
   );
 
   const handleTabChange = (tab: Tab) => {
@@ -93,6 +108,22 @@ function AppInner() {
     }
   }, [theme]);
 
+  // Pantalla de carga nativa inicial durante la autenticación
+  if (!userProfile && loading) {
+    return (
+      <div className="flex h-full w-full flex-col items-center justify-center bg-[var(--bg-primary)] p-6 text-center select-none">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#007aff] border-t-transparent dark:border-[#0a84ff] dark:border-t-transparent" />
+        <h2 className="mt-4 text-base font-bold text-[var(--text-primary)]">Iniciando Quiral POS</h2>
+        <p className="mt-1 text-xs text-[var(--text-secondary)]">Sincronizando estado...</p>
+      </div>
+    );
+  }
+
+  // Pantalla de Autenticación cuando no hay sesión activa
+  if (!userProfile) {
+    return <AuthScreen onAuthSuccess={refreshData} />;
+  }
+
   return (
     <div className="h-full w-full overflow-hidden bg-[var(--bg-primary)] text-[var(--text-primary)] relative">
       {/* Cabecera Fija Nativa Superior (100% sólida, sin blur, estática, con diferenciador por props) */}
@@ -103,7 +134,8 @@ function AppInner() {
         theme={theme}
         onThemeChange={setTheme}
         onOpenSuppliers={() => setIsSuppliersModalOpen(true)}
-        onLogout={() => window.alert("Sesión cerrada exitosamente")}
+        onOpenProfileSecurity={() => setIsProfileSecurityOpen(true)}
+        onLogout={signOut}
       />
 
       {/* Contenedor Principal: las vistas manejan su scroll con .quiral-scroll-container */}
@@ -194,6 +226,22 @@ function AppInner() {
             setIsSuppliersModalOpen(false);
             setIsModalClosing(false);
           }}
+        />
+      )}
+
+      {isProfileSecurityOpen && userProfile && (
+        <ProfileSecurityModal
+          isOpen={isProfileSecurityOpen}
+          onStartClose={() => setIsModalClosing(true)}
+          onClose={() => {
+            setIsProfileSecurityOpen(false);
+            setIsModalClosing(false);
+          }}
+          currentUsername={userProfile.username}
+          storeName={userProfile.storeName}
+          userEmail={userProfile.email}
+          role={userProfile.role}
+          isDemoUser={isDemoUser}
         />
       )}
     </div>

@@ -1,4 +1,4 @@
-export type ProductCategory = "Cargadores y Cables" | "Forros / Fundas" | "Audio / AirPods";
+export type ProductCategory = "Cargadores y Cables" | "Forros / Fundas" | "Audio / AirPods" | "Celulares" | "Perfumes" | "Streaming";
 
 export interface Supplier {
   id: string;
@@ -95,4 +95,14 @@ export interface Closure {
   differenceNote?: string;
   topSellers?: ClosureTopSeller[];
   topReturned?: ClosureTopReturned[];
+}
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  username: string;
+  storeId: string;
+  storeName: string;
+  role: "owner" | "staff";
+  isDemoUser?: boolean;
 }

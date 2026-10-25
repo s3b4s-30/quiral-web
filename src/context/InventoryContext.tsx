@@ -1,180 +1,12 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { Batch, CartItem, Closure, PaymentMethod, Product, Sale, SaleItem, Supplier } from "../types/domain";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { getStoreMembership, printSecurityWarning, signOutUser } from "../lib/authService";
+import { DEMO_STORE_ID, generateDemoSeed } from "../lib/demoSeed";
+import { supabase } from "../lib/supabase";
+import { Batch, CartItem, Closure, PaymentMethod, Product, Sale, SaleItem, Supplier, UserProfile } from "../types/domain";
 
 export const SUPPLIER_PALETTE = [
-  "#007AFF", // Azul
-  "#AF52DE", // Morado
-  "#28CD41", // Verde
-  "#FF9500", // Naranja
-  "#5AC8FA", // Azul Cielo
-  "#FF3B30", // Rojo
-  "#00A3BF", // Turquesa
-  "#0051D5", // Azul Rey
-  "#FFCC00", // Amarillo Ámbar
-  "#FF6B22", // Naranja Rojizo
-  "#FF2D55", // Rojo Coral
-  "#8E8E93", // Gris
-  "#5856D6", // Índigo
-];
-
-const INITIAL_SUPPLIERS: Supplier[] = [
-  {
-    id: "sup-yetcell",
-    name: "Yetcell",
-    phone: "+57 310 123 4567",
-    color: "#FF2D55", // Rojo Coral
-  },
-  {
-    id: "sup-mymobile",
-    name: "Mymobile",
-    phone: "+57 320 987 6543",
-    color: "#30D158", // Verde
-  },
-];
-
-const INITIAL_PRODUCTS: Product[] = [
-  {
-    id: "prod-anker-30w",
-    name: "Cubo Anker 30W",
-    category: "Cargadores y Cables",
-    subtitle: "Cubo · Anker",
-    price: 50000,
-    warrantyDays: 30,
-    batches: [
-      { id: "b1", supplierId: "sup-yetcell", cost: 20000, stock: 12 },
-      { id: "b2", supplierId: "sup-mymobile", cost: 25000, stock: 7 },
-    ],
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "prod-iphone-20w",
-    name: "Cubo iPhone 20W",
-    category: "Cargadores y Cables",
-    subtitle: "Cubo · iPhone",
-    price: 25000,
-    warrantyDays: 15,
-    batches: [
-      { id: "b3", supplierId: "sup-yetcell", cost: 12000, stock: 14 },
-      { id: "b4", supplierId: "sup-mymobile", cost: 11000, stock: 9 },
-    ],
-    createdAt: new Date().toISOString(),
-  },
-];
-
-const INITIAL_SALES: Sale[] = [
-  {
-    id: "sale-93",
-    saleNumber: 93,
-    customerName: "Santiago Restrepo",
-    note: "Combo carga rápida con descuento de $5.000",
-    paymentMethod: "Nequi",
-    createdAt: "2026-10-18T16:30:00-05:00",
-    totalAmount: 75000,
-    items: [
-      {
-        id: "item-93-1",
-        productId: "prod-anker-30w",
-        productName: "Cubo Anker 30W",
-        qty: 1,
-        unitPrice: 50000,
-        warrantyDays: 30,
-        warrantyClaimed: false,
-      },
-      {
-        id: "item-93-2",
-        productId: "prod-iphone-20w",
-        productName: "Cubo iPhone 20W",
-        qty: 1,
-        unitPrice: 25000,
-        warrantyDays: 15,
-        warrantyClaimed: false,
-      },
-    ],
-  },
-  {
-    id: "sale-92",
-    saleNumber: 92,
-    customerName: "Cliente General",
-    paymentMethod: "Efectivo",
-    createdAt: "2026-10-15T11:20:00-05:00",
-    totalAmount: 100000,
-    items: [
-      {
-        id: "item-92-1",
-        productId: "prod-anker-30w",
-        productName: "Cubo Anker 30W",
-        qty: 2,
-        unitPrice: 50000,
-        warrantyDays: 30,
-        warrantyClaimed: false,
-      },
-    ],
-  },
-];
-
-const INITIAL_CLOSURES: Closure[] = [
-  {
-    id: "closure-1",
-    periodLabel: "8 de oct. – 22 de oct. 2026",
-    closedAt: "2026-10-22T20:30:00-05:00",
-    startDate: "2026-10-08T00:00:00-05:00",
-    endDate: "2026-10-22T23:59:59-05:00",
-    totalSold: 250000,
-    netProfit: 136000,
-    recoveredInvestment: 114000,
-    remainingStockInvestment: 548000,
-    expectedCash: 250000,
-    realCashReported: 250000,
-    topSellers: [
-      {
-        id: "prod-anker-30w",
-        name: "Cubo Anker 30W",
-        qty: 3,
-        revenue: 150000,
-        profit: 85000,
-        tx: [
-          {
-            id: "tx-1",
-            date: "2026-10-18T16:30:00-05:00",
-            customer: "Santiago Restrepo",
-            qty: 1,
-            price: 50000,
-          },
-          {
-            id: "tx-2",
-            date: "2026-10-15T11:20:00-05:00",
-            customer: "Cliente General",
-            qty: 2,
-            price: 50000,
-          },
-        ],
-      },
-      {
-        id: "prod-iphone-20w",
-        name: "Cubo iPhone 20W",
-        qty: 4,
-        revenue: 100000,
-        profit: 51000,
-        tx: [
-          {
-            id: "tx-3",
-            date: "2026-10-14T10:15:00-05:00",
-            customer: "Ana Morales",
-            qty: 2,
-            price: 25000,
-          },
-          {
-            id: "tx-4",
-            date: "2026-10-12T17:40:00-05:00",
-            customer: "Carlos Gómez",
-            qty: 2,
-            price: 25000,
-          },
-        ],
-      },
-    ],
-    topReturned: [],
-  },
+  "#007AFF", "#AF52DE", "#28CD41", "#FF9500", "#5AC8FA", "#FF3B30",
+  "#00A3BF", "#0051D5", "#FFCC00", "#FF6B22", "#FF2D55", "#8E8E93", "#5856D6"
 ];
 
 interface InventoryContextType {
@@ -182,6 +14,10 @@ interface InventoryContextType {
   products: Product[];
   sales: Sale[];
   closures: Closure[];
+  loading: boolean;
+  error: string | null;
+  userProfile: UserProfile | null;
+  isDemoUser: boolean;
   showCosts: boolean;
   setShowCosts: React.Dispatch<React.SetStateAction<boolean>>;
   selectedProduct: Product | null;
@@ -201,495 +37,610 @@ interface InventoryContextType {
   removeFromCart: (productId: string) => void;
   clearCart: () => void;
   completeSale: (paymentMethod: PaymentMethod, total: number, customerName?: string) => boolean;
-  createClosure: (closureData: Omit<Closure, "id" | "closedAt"> & { id?: string; closedAt?: string }) => void;
+  createClosure: (data: Omit<Closure, "id" | "closedAt"> & { id?: string; closedAt?: string }) => void;
   toggleItemWarranty: (saleId: string, itemId: string, note?: string) => void;
-  addSupplier: (supplier: Omit<Supplier, "id">) => Supplier;
+  addSupplier: (data: Omit<Supplier, "id">) => Supplier;
   updateSupplier: (supplier: Supplier) => void;
   deleteSupplier: (id: string) => void;
   getSupplier: (id: string) => Supplier | undefined;
-  addProduct: (product: Omit<Product, "id" | "createdAt">) => Product;
+  addProduct: (data: Omit<Product, "id" | "createdAt">) => Product;
   updateProduct: (product: Product) => void;
   deleteProduct: (id: string) => void;
   adjustBatchStock: (productId: string, batchId: string, delta: number) => void;
   adjustMasterStock: (productId: string, delta: number) => void;
   addBatchToProduct: (productId: string, batch: Omit<Batch, "id">) => void;
-  updateProductPrice: (productId: string, newPrice: number) => void;
+  updateProductPrice: (productId: string, price: number) => void;
   purgeOutOfStock: () => number;
+  signOut: () => Promise<void>;
+  refreshData: () => Promise<void>;
 }
 
 const InventoryContext = createContext<InventoryContextType | undefined>(undefined);
+const makeId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
 
-function readStored<T>(key: string, fallback: T, isValid: (value: unknown) => value is T): T {
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return fallback;
-    const parsed: unknown = JSON.parse(raw);
-    return isValid(parsed) ? parsed : fallback;
-  } catch (error) {
-    console.error(`No se pudo leer ${key} desde el almacenamiento local.`, error);
-    return fallback;
-  }
-}
-
-function isSupplierList(value: unknown): value is Supplier[] {
-  return Array.isArray(value) && value.every(
-    (supplier) =>
-      typeof supplier === "object" &&
-      supplier !== null &&
-      typeof supplier.id === "string" &&
-      typeof supplier.name === "string" &&
-      typeof supplier.color === "string" &&
-      (supplier.phone === undefined || typeof supplier.phone === "string"),
-  );
-}
-
-function isBatch(value: unknown): value is Batch {
-  if (typeof value !== "object" || value === null) return false;
-  const batch = value as Record<string, unknown>;
-  return (
-    typeof batch.id === "string" &&
-    typeof batch.supplierId === "string" &&
-    typeof batch.cost === "number" &&
-    Number.isFinite(batch.cost) &&
-    typeof batch.stock === "number" &&
-    Number.isFinite(batch.stock) &&
-    batch.stock >= 0
-  );
-}
-
-function isProductList(value: unknown): value is Product[] {
-  return Array.isArray(value) && value.every((item): item is Product => {
-    if (typeof item !== "object" || item === null) return false;
-    const product = item as Record<string, unknown>;
-    return (
-      typeof product.id === "string" &&
-      typeof product.name === "string" &&
-      typeof product.category === "string" &&
-      typeof product.createdAt === "string" &&
-      typeof product.price === "number" &&
-      Number.isFinite(product.price) &&
-      typeof product.warrantyDays === "number" &&
-      Number.isFinite(product.warrantyDays) &&
-      Array.isArray(product.batches) &&
-      product.batches.every(isBatch)
-    );
-  });
-}
-
-function isSale(value: unknown): value is Sale {
-  if (typeof value !== "object" || value === null) return false;
-  const s = value as Record<string, unknown>;
-  return (
-    typeof s.id === "string" &&
-    typeof s.saleNumber === "number" &&
-    typeof s.customerName === "string" &&
-    typeof s.totalAmount === "number" &&
-    typeof s.createdAt === "string" &&
-    Array.isArray(s.items)
-  );
-}
-
-function isSaleList(value: unknown): value is Sale[] {
-  return Array.isArray(value) && value.every(isSale);
-}
-
-function isClosure(value: unknown): value is Closure {
-  if (typeof value !== "object" || value === null) return false;
-  const c = value as Record<string, unknown>;
-  return (
-    typeof c.id === "string" &&
-    typeof c.periodLabel === "string" &&
-    typeof c.closedAt === "string" &&
-    typeof c.totalSold === "number" &&
-    typeof c.netProfit === "number"
-  );
-}
-
-function isClosureList(value: unknown): value is Closure[] {
-  return Array.isArray(value) && value.every(isClosure);
-}
-
-function writeStored(key: string, value: unknown) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch (error) {
-    console.error(`No se pudo guardar ${key} en el almacenamiento local.`, error);
-  }
-}
+const normalizedProduct = (p: Product): Product => ({
+  ...p,
+  price: Math.max(0, Math.round(p.price)),
+  warrantyDays: Math.max(0, Math.floor(p.warrantyDays)),
+  batches: p.batches.map((b) => ({
+    ...b,
+    cost: Math.max(0, Math.round(b.cost)),
+    stock: Math.max(0, Math.floor(b.stock)),
+  })),
+});
 
 export function InventoryProvider({ children }: { children: React.ReactNode }) {
-  const [suppliers, setSuppliers] = useState<Supplier[]>(() =>
-    readStored("quiral_suppliers", INITIAL_SUPPLIERS, isSupplierList)
-  );
+  const [storeId, setStoreId] = useState<string | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [isDemoUser, setIsDemoUser] = useState<boolean>(() => {
+    return localStorage.getItem("quiral_demo_bypass") === "true";
+  });
 
-  const [products, setProducts] = useState<Product[]>(() =>
-    readStored("quiral_products", INITIAL_PRODUCTS, isProductList)
-  );
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [sales, setSales] = useState<Sale[]>([]);
+  const [closures, setClosures] = useState<Closure[]>([]);
 
-  const [sales, setSales] = useState<Sale[]>(() =>
-    readStored("quiral_sales", INITIAL_SALES, isSaleList)
-  );
-
-  const [closures, setClosures] = useState<Closure[]>(() =>
-    readStored("quiral_closures", INITIAL_CLOSURES, isClosureList)
-  );
-
-  // Modo Mostrador vs Costos
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showCosts, setShowCosts] = useState(false);
-
-  // Estados de Modales
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isNewProductModalOpen, setIsNewProductModalOpen] = useState(false);
   const [isPurgeModalOpen, setIsPurgeModalOpen] = useState(false);
-  const [lastSelectedSupplierId, setLastSelectedSupplierId] = useState<string | null>(() => {
-    try {
-      return localStorage.getItem("quiral-last-supplier-id");
-    } catch {
-      return null;
-    }
-  });
+  const [lastSelectedSupplierId, setLastSelectedSupplierId] = useState<string | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
-  const cartUnits = cart.reduce((sum, item) => sum + item.quantity, 0);
 
+  const report = useCallback((message: string) => {
+    console.error(message);
+    setError(message);
+  }, []);
+
+  // Carga de datos de la tienda desde Supabase con respaldo local si es demo
+  const loadData = useCallback(async (activeStore: string, isDemo = false) => {
+    setLoading(true);
+
+    if (isDemo) {
+      printSecurityWarning();
+      try {
+        // Intentar invocar seed_demo_store en Supabase
+        await supabase.rpc("seed_demo_store", { p_store_id: activeStore });
+      } catch (err) {
+        console.warn("Aviso al sembrar demo en backend:", err);
+      }
+    }
+
+    try {
+      const [supRes, prodRes, salesRes, closuresRes] = await Promise.all([
+        supabase.from("suppliers").select("data").eq("store_id", activeStore),
+        supabase.from("products").select("data").eq("store_id", activeStore),
+        supabase.from("sales").select("data").eq("store_id", activeStore).order("created_at", { ascending: false }),
+        supabase.from("cycle_closings").select("data").eq("store_id", activeStore).order("closed_at", { ascending: false }),
+      ]);
+
+      const loadedSuppliers = supRes.data?.map((r) => r.data as Supplier) ?? [];
+      const loadedProducts = prodRes.data?.map((r) => r.data as Product) ?? [];
+      const loadedSales = salesRes.data?.map((r) => r.data as Sale) ?? [];
+      const loadedClosures = closuresRes.data?.map((r) => r.data as Closure) ?? [];
+
+      // Si es demo y el servidor está vacío o sin tablas, usar el generador de prueba completo (4 meses)
+      if (isDemo && loadedProducts.length === 0) {
+        const demoData = generateDemoSeed();
+        setSuppliers(demoData.suppliers);
+        setProducts(demoData.products);
+        setSales(demoData.sales);
+        setClosures(demoData.closures);
+      } else {
+        setSuppliers(loadedSuppliers);
+        setProducts(loadedProducts);
+        setSales(loadedSales);
+        setClosures(loadedClosures);
+      }
+
+      setError(null);
+    } catch (fetchErr: any) {
+      console.warn("Fallo al conectar con Supabase, usando respaldo:", fetchErr);
+      if (isDemo) {
+        const demoData = generateDemoSeed();
+        setSuppliers(demoData.suppliers);
+        setProducts(demoData.products);
+        setSales(demoData.sales);
+        setClosures(demoData.closures);
+      } else {
+        report(`Error de conexión: ${fetchErr?.message || "Sin red"}`);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [report]);
+
+  // Manejo de sesión y suscripción en tiempo real
   useEffect(() => {
-    writeStored("quiral_suppliers", suppliers);
-  }, [suppliers]);
+    let activeChannel: ReturnType<typeof supabase.channel> | null = null;
 
-  useEffect(() => {
-    writeStored("quiral_products", products);
-  }, [products]);
+    const setupAuthAndStore = async () => {
+      const hasDemoBypass = localStorage.getItem("quiral_demo_bypass") === "true";
 
-  useEffect(() => {
-    writeStored("quiral_sales", sales);
-  }, [sales]);
+      if (hasDemoBypass) {
+        printSecurityWarning();
+        setIsDemoUser(true);
+        const demoProfile: UserProfile = {
+          id: "demo-user-30",
+          email: "demo30@quiral.xyz",
+          username: "30",
+          storeId: DEMO_STORE_ID,
+          storeName: "Quiral Demo 30",
+          role: "owner",
+          isDemoUser: true,
+        };
+        setUserProfile(demoProfile);
+        setStoreId(DEMO_STORE_ID);
+        await loadData(DEMO_STORE_ID, true);
+        return;
+      }
 
-  useEffect(() => {
-    writeStored("quiral_closures", closures);
-  }, [closures]);
-
-  const addSupplier = (supData: Omit<Supplier, "id">): Supplier => {
-    const newSup: Supplier = {
-      ...supData,
-      id: "sup-" + Date.now(),
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData?.session?.user) {
+        const membership = await getStoreMembership(sessionData.session.user.id);
+        if (membership) {
+          const profile: UserProfile = {
+            id: sessionData.session.user.id,
+            email: sessionData.session.user.email || "",
+            username: membership.username,
+            storeId: membership.storeId,
+            storeName: membership.storeName,
+            role: membership.role,
+            isDemoUser: false,
+          };
+          setUserProfile(profile);
+          setStoreId(membership.storeId);
+          setIsDemoUser(false);
+          await loadData(membership.storeId, false);
+        } else {
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
+        setUserProfile(null);
+        setStoreId(null);
+      }
     };
-    setSuppliers((prev) => [...prev, newSup]);
-    return newSup;
+
+    void setupAuthAndStore();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_OUT") {
+        setUserProfile(null);
+        setStoreId(null);
+        setSuppliers([]);
+        setProducts([]);
+        setSales([]);
+        setClosures([]);
+        setLoading(false);
+        localStorage.removeItem("quiral_demo_bypass");
+        setIsDemoUser(false);
+        return;
+      }
+
+      if (session?.user) {
+        const hasDemo = localStorage.getItem("quiral_demo_bypass") === "true";
+        if (hasDemo) {
+          printSecurityWarning();
+          setIsDemoUser(true);
+          const demoProfile: UserProfile = {
+            id: session.user.id,
+            email: session.user.email || "demo30@quiral.xyz",
+            username: "30",
+            storeId: DEMO_STORE_ID,
+            storeName: "Quiral Demo 30",
+            role: "owner",
+            isDemoUser: true,
+          };
+          setUserProfile(demoProfile);
+          setStoreId(DEMO_STORE_ID);
+          void loadData(DEMO_STORE_ID, true);
+        } else {
+          const membership = await getStoreMembership(session.user.id);
+          if (membership) {
+            setUserProfile({
+              id: session.user.id,
+              email: session.user.email || "",
+              username: membership.username,
+              storeId: membership.storeId,
+              storeName: membership.storeName,
+              role: membership.role,
+              isDemoUser: false,
+            });
+            setStoreId(membership.storeId);
+            setIsDemoUser(false);
+            void loadData(membership.storeId, false);
+          }
+        }
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+      if (activeChannel) {
+        supabase.removeChannel(activeChannel);
+      }
+    };
+  }, [loadData]);
+
+  // Suscripción Realtime a cambios concurrentes de la tienda activa
+  useEffect(() => {
+    if (!storeId || isDemoUser) return;
+
+    const channel = supabase
+      .channel(`realtime:store:${storeId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "products", filter: `store_id=eq.${storeId}` },
+        (payload) => {
+          if (payload.eventType === "INSERT" || payload.eventType === "UPDATE") {
+            const rowData = payload.new?.data as Product;
+            if (rowData) {
+              setProducts((prev) => [rowData, ...prev.filter((p) => p.id !== rowData.id)]);
+            }
+          } else if (payload.eventType === "DELETE") {
+            const oldId = payload.old?.id as string;
+            if (oldId) {
+              setProducts((prev) => prev.filter((p) => p.id !== oldId));
+            }
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "sales", filter: `store_id=eq.${storeId}` },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            const rowData = payload.new?.data as Sale;
+            if (rowData) {
+              setSales((prev) => [rowData, ...prev.filter((s) => s.id !== rowData.id)]);
+            }
+          } else if (payload.eventType === "UPDATE") {
+            const rowData = payload.new?.data as Sale;
+            if (rowData) {
+              setSales((prev) => prev.map((s) => (s.id === rowData.id ? rowData : s)));
+            }
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "cycle_closings", filter: `store_id=eq.${storeId}` },
+        (payload) => {
+          if (payload.eventType === "INSERT" || payload.eventType === "UPDATE") {
+            const rowData = payload.new?.data as Closure;
+            if (rowData) {
+              setClosures((prev) => [rowData, ...prev.filter((c) => c.id !== rowData.id)]);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [storeId, isDemoUser]);
+
+  // Persistencia segura en Supabase
+  const persist = useCallback(
+    async (table: string, entity: { id: string }) => {
+      if (!storeId) return;
+      if (isDemoUser) return; // En demo local no bloqueamos con errores de BD
+      const { error: err } = await supabase.from(table).upsert({
+        store_id: storeId,
+        id: entity.id,
+        data: entity,
+        updated_at: new Date().toISOString(),
+      });
+      if (err) throw err;
+    },
+    [storeId, isDemoUser]
+  );
+
+  const cartUnits = useMemo(() => cart.reduce((sum, item) => sum + item.quantity, 0), [cart]);
+
+  // Proveedores
+  const addSupplier = (data: Omit<Supplier, "id">) => {
+    const value: Supplier = { ...data, id: makeId("sup") };
+    setSuppliers((prev) => [value, ...prev]);
+    void persist("suppliers", value).catch((err) => report(err.message));
+    return value;
   };
 
-  const updateSupplier = (updated: Supplier) => {
-    setSuppliers((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+  const updateSupplier = (value: Supplier) => {
+    setSuppliers((prev) => prev.map((s) => (s.id === value.id ? value : s)));
+    void persist("suppliers", value).catch((err) => report(err.message));
   };
 
   const deleteSupplier = (id: string) => {
     setSuppliers((prev) => prev.filter((s) => s.id !== id));
+    if (storeId && !isDemoUser) {
+      void supabase.from("suppliers").delete().eq("store_id", storeId).eq("id", id);
+    }
   };
 
-  const getSupplier = (id: string) => {
-    return suppliers.find((s) => s.id === id);
-  };
+  const getSupplier = (id: string) => suppliers.find((s) => s.id === id);
 
-  const addProduct = (pData: Omit<Product, "id" | "createdAt">): Product => {
-    const batches = pData.batches.map((batch) => ({
-      ...batch,
-      cost: Math.max(0, Math.round(batch.cost)),
-      stock: Math.max(0, Math.floor(batch.stock)),
-    }));
-    const newProd: Product = {
-      ...pData,
-      price: Math.max(0, Math.round(pData.price)),
-      warrantyDays: Math.max(0, Math.floor(pData.warrantyDays)),
-      batches,
-      id: "prod-" + Date.now(),
+  // Productos
+  const addProduct = (data: Omit<Product, "id" | "createdAt">) => {
+    const value = normalizedProduct({
+      ...data,
+      id: makeId("prod"),
       createdAt: new Date().toISOString(),
-    };
-    setProducts((prev) => [newProd, ...prev]);
-    return newProd;
+    });
+    setProducts((prev) => [value, ...prev]);
+    void persist("products", value).catch((err) => report(err.message));
+    return value;
   };
 
-  const updateProduct = (updated: Product) => {
-    setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+  const updateProduct = (value: Product) => {
+    const norm = normalizedProduct(value);
+    setProducts((prev) => prev.map((p) => (p.id === norm.id ? norm : p)));
+    void persist("products", norm).catch((err) => report(err.message));
   };
 
   const deleteProduct = (id: string) => {
     setProducts((prev) => prev.filter((p) => p.id !== id));
+    if (storeId && !isDemoUser) {
+      void supabase.from("products").delete().eq("store_id", storeId).eq("id", id);
+    }
+  };
+
+  const mutateProduct = (productId: string, mutator: (p: Product) => Product) => {
+    const current = products.find((p) => p.id === productId);
+    if (current) {
+      updateProduct(mutator(current));
+    }
   };
 
   const adjustBatchStock = (productId: string, batchId: string, delta: number) => {
-    setProducts((prev) =>
-      prev.map((p) => {
-        if (p.id !== productId) return p;
-        const updatedBatches = p.batches.map((b) => {
-          if (b.id !== batchId) return b;
-          const nextStock = Math.max(0, b.stock + delta);
-          return { ...b, stock: nextStock };
-        });
-        return { ...p, batches: updatedBatches };
-      })
-    );
+    mutateProduct(productId, (p) => ({
+      ...p,
+      batches: p.batches.map((b) =>
+        b.id === batchId ? { ...b, stock: Math.max(0, b.stock + Math.trunc(delta)) } : b
+      ),
+    }));
   };
 
   const adjustMasterStock = (productId: string, delta: number) => {
-    if (delta === 0) return;
+    mutateProduct(productId, (p) => {
+      const batches = p.batches.map((b) => ({ ...b }));
+      const steps = Math.abs(Math.trunc(delta));
+      for (let i = 0; i < steps; i++) {
+        const candidates = batches
+          .map((b, index) => ({ b, index }))
+          .filter((x) => delta > 0 || x.b.stock > 0);
 
-    setProducts((prev) =>
-      prev.map((p) => {
-        if (p.id !== productId) return p;
-        if (!p.batches || p.batches.length === 0) return p;
+        const target = candidates.sort(
+          (a, b) => b.b.stock - a.b.stock || a.index - b.index
+        )[0];
 
-        const updatedBatches = p.batches.map((b) => ({ ...b }));
-        const steps = Math.abs(delta);
-
-        for (let i = 0; i < steps; i++) {
-          if (delta > 0) {
-            // Incrementar: añadir 1 unidad al lote con mayor cantidad (desempate determinista: primer índice)
-            let maxIdx = 0;
-            let maxStock = updatedBatches[0].stock;
-            for (let j = 1; j < updatedBatches.length; j++) {
-              if (updatedBatches[j].stock > maxStock) {
-                maxStock = updatedBatches[j].stock;
-                maxIdx = j;
-              }
-            }
-            updatedBatches[maxIdx].stock += 1;
-          } else {
-            // Decrementar: restar 1 unidad del lote con mayor cantidad disponible (> 0)
-            let maxIdx = -1;
-            let maxStock = 0;
-            for (let j = 0; j < updatedBatches.length; j++) {
-              if (updatedBatches[j].stock > maxStock) {
-                maxStock = updatedBatches[j].stock;
-                maxIdx = j;
-              }
-            }
-            // Si ningún lote tiene stock disponible, se interrumpe el decremento (no permite negativos)
-            if (maxIdx === -1 || maxStock <= 0) {
-              break;
-            }
-            updatedBatches[maxIdx].stock = Math.max(0, updatedBatches[maxIdx].stock - 1);
-          }
-        }
-
-        return { ...p, batches: updatedBatches };
-      })
-    );
-  };
-
-  const addBatchToProduct = (productId: string, batchData: Omit<Batch, "id">) => {
-    const newBatch: Batch = {
-      ...batchData,
-      cost: Math.max(0, Math.round(batchData.cost)),
-      stock: Math.max(0, Math.floor(batchData.stock)),
-      id: "batch-" + Date.now(),
-    };
-    setProducts((prev) =>
-      prev.map((p) => {
-        if (p.id !== productId) return p;
-        return { ...p, batches: [...p.batches, newBatch] };
-      })
-    );
-  };
-
-  const updateProductPrice = (productId: string, newPrice: number) => {
-    setProducts((prev) =>
-      prev.map((p) => {
-        if (p.id !== productId) return p;
-        return { ...p, price: newPrice };
-      })
-    );
-  };
-
-  const purgeOutOfStock = (): number => {
-    let purgedCount = 0;
-    setProducts((prev) => {
-      const remaining: Product[] = [];
-      for (const p of prev) {
-        const totalStock = p.batches.reduce((sum, b) => sum + b.stock, 0);
-        if (totalStock === 0) {
-          purgedCount++;
-        } else {
-          remaining.push(p);
-        }
+        if (!target) break;
+        target.b.stock += delta > 0 ? 1 : -1;
       }
-      return remaining;
+      return { ...p, batches };
     });
-    return purgedCount;
   };
 
-  const addToCart = (productId: string): boolean => {
-    const product = products.find((item) => item.id === productId);
-    if (!product) return false;
-    const existing = cart.find((item) => item.productId === productId);
-    const availableBatches = product.batches.filter((item) => item.stock > 0);
-    if (availableBatches.length === 0) return false;
+  const addBatchToProduct = (productId: string, data: Omit<Batch, "id">) => {
+    mutateProduct(productId, (p) => ({
+      ...p,
+      batches: [
+        ...p.batches,
+        {
+          ...data,
+          id: makeId("batch"),
+          cost: Math.max(0, Math.round(data.cost)),
+          stock: Math.max(0, Math.floor(data.stock)),
+        },
+      ],
+    }));
+  };
 
-    // Priorizar lote del último proveedor seleccionado si tiene stock
-    const preferredBatch = lastSelectedSupplierId
-      ? availableBatches.find((item) => item.supplierId === lastSelectedSupplierId)
-      : undefined;
+  const updateProductPrice = (productId: string, price: number) => {
+    mutateProduct(productId, (p) => ({
+      ...p,
+      price: Math.max(0, Math.round(price)),
+    }));
+  };
 
-    const batch = preferredBatch || [...availableBatches].sort((a, b) => b.stock - a.stock)[0];
-    if (!batch) return false;
-    if (existing) {
-      const activeBatch = product.batches.find((item) => item.id === existing.batchId);
-      if (!activeBatch || existing.quantity >= activeBatch.stock) return false;
-      setCart((current) =>
-        current.map((item) =>
-          item.productId === productId ? { ...item, quantity: item.quantity + 1 } : item
+  const purgeOutOfStock = () => {
+    const removed = products.filter((p) => p.batches.every((b) => b.stock === 0));
+    setProducts((prev) => prev.filter((p) => !removed.some((r) => r.id === p.id)));
+    if (storeId && !isDemoUser) {
+      void Promise.all(
+        removed.map((p) =>
+          supabase.from("products").delete().eq("store_id", storeId).eq("id", p.id)
         )
       );
-      return true;
     }
-    setCart((current) => [
-      ...current,
-      { productId, batchId: batch.id, quantity: 1, unitPrice: product.price },
-    ]);
+    return removed.length;
+  };
+
+  // Carrito de compras
+  const addToCart = (productId: string) => {
+    const product = products.find((p) => p.id === productId);
+    if (!product) return false;
+    const existing = cart.find((i) => i.productId === productId);
+    const batch = product.batches.filter((b) => b.stock > 0).sort((a, b) => b.stock - a.stock)[0];
+    if (!batch) return false;
+
+    if (existing) {
+      const active = product.batches.find((b) => b.id === existing.batchId);
+      if (!active || existing.quantity >= active.stock) return false;
+      setCart((prev) =>
+        prev.map((i) => (i.productId === productId ? { ...i, quantity: i.quantity + 1 } : i))
+      );
+    } else {
+      setCart((prev) => [
+        ...prev,
+        { productId, batchId: batch.id, quantity: 1, unitPrice: product.price },
+      ]);
+    }
     return true;
   };
 
   const updateCartQuantity = (productId: string, quantity: number) => {
-    const item = cart.find((entry) => entry.productId === productId);
-    const product = products.find((entry) => entry.id === productId);
-    if (!item || !product) return;
-    const batch = product.batches.find((entry) => entry.id === item.batchId);
-    const nextQuantity = Math.min(Math.max(0, Math.floor(quantity)), batch?.stock ?? 0);
-    if (nextQuantity === 0) {
-      setCart((current) => current.filter((entry) => entry.productId !== productId));
-      return;
+    const item = cart.find((i) => i.productId === productId);
+    const product = products.find((p) => p.id === productId);
+    const stock = product?.batches.find((b) => b.id === item?.batchId)?.stock ?? 0;
+    const next = Math.min(Math.max(0, Math.floor(quantity)), stock);
+    setCart((prev) =>
+      next === 0
+        ? prev.filter((i) => i.productId !== productId)
+        : prev.map((i) => (i.productId === productId ? { ...i, quantity: next } : i))
+    );
+  };
+
+  const updateCartItemPrice = (productId: string, unitPrice: number) => {
+    if (Number.isFinite(unitPrice) && unitPrice >= 0) {
+      setCart((prev) =>
+        prev.map((i) => (i.productId === productId ? { ...i, unitPrice: Math.round(unitPrice) } : i))
+      );
     }
-    setCart((current) =>
-      current.map((entry) =>
-        entry.productId === productId ? { ...entry, quantity: nextQuantity } : entry
+  };
+
+  const updateCartItemBatch = (productId: string, batchId: string) => {
+    const product = products.find((p) => p.id === productId);
+    const batch = product?.batches.find((b) => b.id === batchId);
+    if (!batch || batch.stock <= 0) return;
+    setLastSelectedSupplierId(batch.supplierId);
+    setCart((prev) =>
+      prev.map((i) =>
+        i.productId === productId
+          ? { ...i, batchId, quantity: Math.min(i.quantity, batch.stock) }
+          : i
       )
     );
   };
 
   const removeFromCart = (productId: string) => {
-    setCart((current) => current.filter((item) => item.productId !== productId));
-  };
-
-  const updateCartItemPrice = (productId: string, unitPrice: number) => {
-    if (!Number.isFinite(unitPrice) || unitPrice < 0) return;
-    setCart((current) =>
-      current.map((item) =>
-        item.productId === productId
-          ? { ...item, unitPrice: Math.round(unitPrice) }
-          : item
-      )
-    );
-  };
-
-  const updateCartItemBatch = (productId: string, batchId: string) => {
-    const product = products.find((entry) => entry.id === productId);
-    const item = cart.find((entry) => entry.productId === productId);
-    const batch = product?.batches.find((entry) => entry.id === batchId);
-    if (!product || !item || !batch || batch.stock <= 0) return;
-
-    // Persistir el proveedor seleccionado para futuros agregados
-    setLastSelectedSupplierId(batch.supplierId);
-    try {
-      localStorage.setItem("quiral-last-supplier-id", batch.supplierId);
-    } catch {
-      // Ignorar error de cuota o modo privado
-    }
-
-    setCart((current) =>
-      current.map((entry) =>
-        entry.productId === productId
-          ? { ...entry, batchId, quantity: Math.min(entry.quantity, batch.stock) }
-          : entry
-      )
-    );
+    setCart((prev) => prev.filter((i) => i.productId !== productId));
   };
 
   const clearCart = () => setCart([]);
 
-  const completeSale = (
-    paymentMethod: PaymentMethod,
-    total: number,
-    customerName?: string
-  ): boolean => {
+  // Ventas: Concurrencia y RPC Atómico
+  const completeSale = (paymentMethod: PaymentMethod, total: number, customerName?: string) => {
     const subtotal = cart.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
     if (!cart.length || !Number.isFinite(total) || total < 0 || total > subtotal) return false;
-    const updatedProducts = products.map((product) => {
-      const item = cart.find((entry) => entry.productId === product.id);
-      if (!item) return product;
-      const batch = product.batches.find((entry) => entry.id === item.batchId);
-      if (!batch || batch.stock < item.quantity) return null;
-      return {
-        ...product,
-        batches: product.batches.map((entry) =>
-          entry.id === item.batchId ? { ...entry, stock: entry.stock - item.quantity } : entry
-        ),
-      };
-    });
-    if (updatedProducts.some((product) => product === null)) return false;
-    const productsToSave = updatedProducts.filter(
-      (product): product is Product => product !== null,
-    );
 
-    // Registrar venta en historial
-    const newSaleItems: SaleItem[] = cart.map((cartItem) => {
-      const prod = products.find((p) => p.id === cartItem.productId);
-      const batch = prod?.batches.find((b) => b.id === cartItem.batchId);
+    const nextNumber = (sales[0]?.saleNumber ?? 1000) + 1;
+    const saleItems: SaleItem[] = cart.map((item) => {
+      const product = products.find((p) => p.id === item.productId);
+      const batch = product?.batches.find((b) => b.id === item.batchId);
       return {
-        id: "item-" + Date.now() + "-" + Math.random().toString(36).substring(2, 6),
-        productId: cartItem.productId,
-        productName: prod?.name || "Producto",
-        qty: cartItem.quantity,
-        unitPrice: cartItem.unitPrice,
-        unitCostSnapshot: batch?.cost || prod?.batches[0]?.cost || 0,
-        batchId: cartItem.batchId,
-        warrantyDays: prod?.warrantyDays || 15,
+        id: makeId("item"),
+        productId: item.productId,
+        productName: product?.name ?? "Producto",
+        qty: item.quantity,
+        unitPrice: item.unitPrice,
+        unitCostSnapshot: batch?.cost ?? 0,
+        batchId: item.batchId,
+        warrantyDays: product?.warrantyDays ?? 30,
         warrantyClaimed: false,
       };
     });
 
-    const nextSaleNumber = (sales[0]?.saleNumber || 90) + 1;
     const newSale: Sale = {
-      id: "sale-" + Date.now(),
-      saleNumber: nextSaleNumber,
+      id: makeId("sale"),
+      saleNumber: nextNumber,
       customerName: customerName?.trim() || "Cliente General",
       paymentMethod,
-      totalAmount: total,
+      totalAmount: Math.round(total),
       createdAt: new Date().toISOString(),
-      items: newSaleItems,
+      items: saleItems,
     };
 
+    // Actualización optimista local inmediata
     setSales((prev) => [newSale, ...prev]);
-    setProducts(productsToSave);
+    setProducts((prev) =>
+      prev.map((p) => {
+        const item = cart.find((i) => i.productId === p.id);
+        if (!item) return p;
+        return {
+          ...p,
+          batches: p.batches.map((b) =>
+            b.id === item.batchId ? { ...b, stock: Math.max(0, b.stock - item.quantity) } : b
+          ),
+        };
+      })
+    );
     setCart([]);
-    console.info(`Venta #${nextSaleNumber} completada con método ${paymentMethod}.`);
+
+    // Transacción atómica en Supabase si está conectado
+    if (storeId && !isDemoUser) {
+      void supabase
+        .rpc("complete_sale", {
+          target_store: storeId,
+          sale_id: newSale.id,
+          sale_number: newSale.saleNumber,
+          sale_created_at: newSale.createdAt,
+          sale_data: newSale,
+          lines: cart,
+        })
+        .then(({ error: rpcErr }) => {
+          if (rpcErr) {
+            report(`Aviso de sincronización en venta: ${rpcErr.message}`);
+          }
+        });
+    }
+
     return true;
   };
 
   const toggleItemWarranty = (saleId: string, itemId: string, note?: string) => {
-    setSales((prev) =>
-      prev.map((sale) => {
-        if (sale.id !== saleId) return sale;
-        return {
-          ...sale,
-          items: sale.items.map((item) => {
-            if (item.id !== itemId) return item;
-            return {
-              ...item,
-              warrantyClaimed: !item.warrantyClaimed,
-              warrantyClaimNote: note !== undefined ? note : item.warrantyClaimNote,
-            };
-          }),
-        };
-      })
-    );
+    const sale = sales.find((s) => s.id === saleId);
+    if (!sale) return;
+
+    const updatedSale: Sale = {
+      ...sale,
+      items: sale.items.map((i) =>
+        i.id === itemId
+          ? {
+              ...i,
+              warrantyClaimed: !i.warrantyClaimed,
+              warrantyClaimNote: note !== undefined ? note : i.warrantyClaimNote,
+            }
+          : i
+      ),
+    };
+
+    setSales((prev) => prev.map((s) => (s.id === saleId ? updatedSale : s)));
+    void persist("sales", updatedSale).catch((err) => report(err.message));
   };
 
   const createClosure = (
-    closureData: Omit<Closure, "id" | "closedAt"> & { id?: string; closedAt?: string }
+    data: Omit<Closure, "id" | "closedAt"> & { id?: string; closedAt?: string }
   ) => {
-    const newClosure: Closure = {
-      ...closureData,
-      id: closureData.id || "cycle-" + Date.now(),
-      closedAt: closureData.closedAt || new Date().toISOString(),
+    const value: Closure = {
+      ...data,
+      id: data.id ?? makeId("cycle"),
+      closedAt: data.closedAt ?? new Date().toISOString(),
     };
-    setClosures((prev) => [newClosure, ...prev]);
+    setClosures((prev) => [value, ...prev]);
+    void persist("cycle_closings", value).catch((err) => report(err.message));
+  };
+
+  const signOut = async () => {
+    await signOutUser();
+    setUserProfile(null);
+    setStoreId(null);
+    setIsDemoUser(false);
+    setSuppliers([]);
+    setProducts([]);
+    setSales([]);
+    setClosures([]);
+  };
+
+  const refreshData = async () => {
+    if (storeId) {
+      await loadData(storeId, isDemoUser);
+    }
   };
 
   return (
@@ -699,8 +650,10 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         products,
         sales,
         closures,
-        createClosure,
-        toggleItemWarranty,
+        loading,
+        error,
+        userProfile,
+        isDemoUser,
         showCosts,
         setShowCosts,
         selectedProduct,
@@ -720,6 +673,8 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         removeFromCart,
         clearCart,
         completeSale,
+        createClosure,
+        toggleItemWarranty,
         addSupplier,
         updateSupplier,
         deleteSupplier,
@@ -732,6 +687,8 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         addBatchToProduct,
         updateProductPrice,
         purgeOutOfStock,
+        signOut,
+        refreshData,
       }}
     >
       {children}
