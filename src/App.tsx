@@ -11,6 +11,7 @@ import { InventoryProvider, useInventory } from "./context/InventoryContext";
 import HistoryView from "./views/HistoryView";
 import InventoryView from "./views/InventoryView";
 import PosView from "./views/PosView";
+import SummaryView from "./views/SummaryView";
 
 function getInitialTheme(): Theme {
   let stored: string | null = null;
@@ -28,6 +29,7 @@ function AppInner() {
   const [navbarVariant] = useState<NavbarVariant>("floating");
   const [isSuppliersModalOpen, setIsSuppliersModalOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
   const [isModalClosing, setIsModalClosing] = useState(false);
 
   const {
@@ -44,7 +46,7 @@ function AppInner() {
   // Ocultar Navbar cuando cualquier modal o vista secundaria esté activa
   // Se restaura inmediatamente al iniciar la animación de cierre (<=180ms ease-out)
   const hasActiveModal = Boolean(
-    (selectedProduct || isNewProductModalOpen || isPurgeModalOpen || isSuppliersModalOpen || isCheckoutOpen)
+    (selectedProduct || isNewProductModalOpen || isPurgeModalOpen || isSuppliersModalOpen || isCheckoutOpen || isSummaryModalOpen)
     && !isModalClosing
   );
 
@@ -57,6 +59,8 @@ function AppInner() {
         document.getElementById("pos-scroll")?.scrollTo({ top: 0, behavior: "smooth" });
       } else if (tab === "history") {
         document.getElementById("history-scroll")?.scrollTo({ top: 0, behavior: "smooth" });
+      } else if (tab === "summary") {
+        document.getElementById("summary-scroll")?.scrollTo({ top: 0, behavior: "smooth" });
       }
     });
   };
@@ -110,6 +114,8 @@ function AppInner() {
           <PosView onCheckoutStateChange={setIsCheckoutOpen} />
         ) : activeTab === "history" ? (
           <HistoryView onGoToPOS={() => handleTabChange("sell")} />
+        ) : activeTab === "summary" ? (
+          <SummaryView onModalStateChange={setIsSummaryModalOpen} />
         ) : (
           <div className="quiral-scroll-container px-4 pb-24 text-center text-[var(--text-secondary)]">
             <p className="text-base font-semibold pt-12">Esta sección estará disponible próximamente.</p>

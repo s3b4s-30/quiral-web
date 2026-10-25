@@ -1,4 +1,4 @@
-import { Plus, Trash2 } from "lucide-react";
+import { Eye, EyeOff, Plus, Trash2 } from "lucide-react";
 import AdminCompactButton from "./AdminCompactButton";
 import { useInventory } from "../context/InventoryContext";
 import { Tab } from "./Navbar";
@@ -44,7 +44,7 @@ export default function TopHeader({
   onLogout,
   variant = "default",
 }: TopHeaderProps) {
-  const { setIsNewProductModalOpen, setIsPurgeModalOpen } = useInventory();
+  const { setIsNewProductModalOpen, setIsPurgeModalOpen, showCosts, setShowCosts } = useInventory();
 
   const title = TAB_TITLES[activeTab] || "Quiral";
   const isAccent = variant === "accent";
@@ -103,6 +103,33 @@ export default function TopHeader({
                 <Plus size={19} strokeWidth={2.5} />
               </button>
             </>
+          )}
+
+          {activeTab === "summary" && (
+            <button
+              type="button"
+              onClick={() => setShowCosts((prev) => !prev)}
+              title={
+                !showCosts
+                  ? "Modo privacidad activo (ocultando montos sensibles)"
+                  : "Mostrar u ocultar montos sensibles"
+              }
+              aria-label={!showCosts ? "Modo privacidad activo" : "Modo privacidad inactivo"}
+              className={`inline-flex h-9 items-center justify-center gap-1.5 rounded-full border text-xs font-semibold shadow-sm transition-colors duration-75 active:scale-95 select-none shrink-0 ${
+                !showCosts
+                  ? "border-amber-500/40 bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                  : "border-[var(--border-color)] bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              } w-9 min-[420px]:w-auto min-[420px]:px-2.5`}
+            >
+              {!showCosts ? (
+                <EyeOff size={16} className="shrink-0" />
+              ) : (
+                <Eye size={16} className="shrink-0 text-[#007aff] dark:text-[#0a84ff]" />
+              )}
+              <span className="hidden min-[420px]:inline whitespace-nowrap leading-none transition-none">
+                {!showCosts ? "Privacidad" : "Visible"}
+              </span>
+            </button>
           )}
 
           {/* Menú de configuración persistente */}

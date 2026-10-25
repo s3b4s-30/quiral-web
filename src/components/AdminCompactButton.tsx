@@ -4,6 +4,7 @@ import { useInventory } from "../context/InventoryContext";
 
 interface AdminCompactButtonProps {
   className?: string;
+  iconOnly?: boolean;
 }
 
 /**
@@ -11,13 +12,13 @@ interface AdminCompactButtonProps {
  * 
  * Características:
  * 1. Control unificado: única fuente de activación/desactivación del modo administrador.
- * 2. Adaptable: se presenta como botón de icono en pantallas estrechas (<420px)
+ * 2. Adaptable: se presenta como botón de icono en pantallas estrechas (<420px) o cuando `iconOnly=true`,
  *    y como píldora con texto completo en pantallas mayores, evitando desbordamientos.
  * 3. Accesibilidad: aria-label y title explícitos para lectores de pantalla.
  * 4. Flexbox nativo: sin posicionamientos absolutos ni colisiones de capas.
  * 5. Consistencia global: acento azul nativo estándar en toda la aplicación.
  */
-export default function AdminCompactButton({ className = "" }: AdminCompactButtonProps) {
+export default function AdminCompactButton({ className = "", iconOnly = false }: AdminCompactButtonProps) {
   const { showCosts, setShowCosts } = useInventory();
 
   return (
@@ -34,16 +35,18 @@ export default function AdminCompactButton({ className = "" }: AdminCompactButto
         showCosts
           ? "border-[#007aff]/40 bg-[#007aff]/15 text-[#007aff] dark:text-[#0a84ff]"
           : "border-[var(--border-color)] bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-      } w-9 min-[420px]:w-auto min-[420px]:px-2.5 ${className}`}
+      } ${iconOnly ? "w-9" : "w-9 min-[420px]:w-auto min-[420px]:px-2.5"} ${className}`}
     >
       {showCosts ? (
         <Eye size={16} className="shrink-0 text-[#007aff] dark:text-[#0a84ff]" />
       ) : (
         <EyeOff size={16} className="shrink-0 text-[var(--text-secondary)]" />
       )}
-      <span className="hidden min-[420px]:inline whitespace-nowrap leading-none transition-none">
-        Modo Administrador
-      </span>
+      {!iconOnly && (
+        <span className="hidden min-[420px]:inline whitespace-nowrap leading-none transition-none">
+          Modo Administrador
+        </span>
+      )}
     </button>
   );
 }

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import AdminCompactButton from "./AdminCompactButton";
 import ModalSheet from "./ModalSheet";
 import { useInventory } from "../context/InventoryContext";
 import { PaymentMethod } from "../types/domain";
@@ -16,6 +17,7 @@ export default function CheckoutSheet({ onClose, onStartClose }: CheckoutSheetPr
     cart,
     products,
     suppliers,
+    showCosts,
     updateCartQuantity,
     updateCartItemPrice,
     updateCartItemBatch,
@@ -48,6 +50,7 @@ export default function CheckoutSheet({ onClose, onStartClose }: CheckoutSheetPr
       title="Cobro"
       onClose={onClose}
       onStartClose={onStartClose}
+      headerRight={<AdminCompactButton iconOnly />}
       footer={
         <button
           type="button"
@@ -149,9 +152,14 @@ export default function CheckoutSheet({ onClose, onStartClose }: CheckoutSheetPr
 
                   {/* Selector de lote / proveedor */}
                   <div>
-                    <p className="text-[11px] font-semibold text-[var(--text-secondary)]">
-                      Lote / Proveedor:
-                    </p>
+                    <div className="flex items-center justify-between text-[11px] font-semibold text-[var(--text-secondary)]">
+                      <span>Lote / Proveedor:</span>
+                      {showCosts && activeBatch && (
+                        <span className="tabular-nums text-emerald-600 dark:text-emerald-400 font-bold">
+                          Costo: {formatCOP(activeBatch.cost)} (Margen: +{formatCOP(item.unitPrice - activeBatch.cost)})
+                        </span>
+                      )}
+                    </div>
                     <div className="mt-1 flex gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
                       {product.batches
                         .filter((batch) => batch.stock > 0)
@@ -170,7 +178,7 @@ export default function CheckoutSheet({ onClose, onStartClose }: CheckoutSheetPr
                               }`}
                               style={active ? { backgroundColor: supplier?.color ?? "#007aff" } : undefined}
                             >
-                              {supplier?.name ?? "Proveedor"} ({batch.stock} uds)
+                              {supplier?.name ?? "Proveedor"} ({batch.stock} uds{showCosts ? ` · Costo ${formatCOP(batch.cost)}` : ""})
                             </button>
                           );
                         })}
@@ -227,6 +235,22 @@ export default function CheckoutSheet({ onClose, onStartClose }: CheckoutSheetPr
               {formatCOP(subtotal)}
             </span>
           </div>
+
+          {showCosts && (
+            <div className="flex items-center justify-between text-xs text-emerald-600 dark:text-emerald-400 font-semibold pt-1 border-t border-[var(--border-color)]/60">
+              <span>Utilidad estimada</span>
+              <span className="tabular-nums font-bold">
+                +{formatCOP(
+                  effectiveTotal -
+                    cart.reduce((sum, it) => {
+                      const p = products.find((prod) => prod.id === it.productId);
+                      const b = p?.batches.find((batch) => batch.id === it.batchId);
+                      return sum + it.quantity * (b?.cost ?? 0);
+                    }, 0)
+                )}
+              </span>
+            </div>
+          )}
 
           <div>
             <label

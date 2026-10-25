@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { Batch, CartItem, PaymentMethod, Product, Sale, SaleItem, Supplier } from "../types/domain";
+import { Batch, CartItem, Closure, PaymentMethod, Product, Sale, SaleItem, Supplier } from "../types/domain";
 
 export const SUPPLIER_PALETTE = [
   "#007AFF", // Azul
@@ -112,10 +112,76 @@ const INITIAL_SALES: Sale[] = [
   },
 ];
 
+const INITIAL_CLOSURES: Closure[] = [
+  {
+    id: "closure-1",
+    periodLabel: "8 de oct. – 22 de oct. 2026",
+    closedAt: "2026-10-22T20:30:00-05:00",
+    startDate: "2026-10-08T00:00:00-05:00",
+    endDate: "2026-10-22T23:59:59-05:00",
+    totalSold: 250000,
+    netProfit: 136000,
+    recoveredInvestment: 114000,
+    remainingStockInvestment: 548000,
+    expectedCash: 250000,
+    realCashReported: 250000,
+    topSellers: [
+      {
+        id: "prod-anker-30w",
+        name: "Cubo Anker 30W",
+        qty: 3,
+        revenue: 150000,
+        profit: 85000,
+        tx: [
+          {
+            id: "tx-1",
+            date: "2026-10-18T16:30:00-05:00",
+            customer: "Santiago Restrepo",
+            qty: 1,
+            price: 50000,
+          },
+          {
+            id: "tx-2",
+            date: "2026-10-15T11:20:00-05:00",
+            customer: "Cliente General",
+            qty: 2,
+            price: 50000,
+          },
+        ],
+      },
+      {
+        id: "prod-iphone-20w",
+        name: "Cubo iPhone 20W",
+        qty: 4,
+        revenue: 100000,
+        profit: 51000,
+        tx: [
+          {
+            id: "tx-3",
+            date: "2026-10-14T10:15:00-05:00",
+            customer: "Ana Morales",
+            qty: 2,
+            price: 25000,
+          },
+          {
+            id: "tx-4",
+            date: "2026-10-12T17:40:00-05:00",
+            customer: "Carlos Gómez",
+            qty: 2,
+            price: 25000,
+          },
+        ],
+      },
+    ],
+    topReturned: [],
+  },
+];
+
 interface InventoryContextType {
   suppliers: Supplier[];
   products: Product[];
   sales: Sale[];
+  closures: Closure[];
   showCosts: boolean;
   setShowCosts: React.Dispatch<React.SetStateAction<boolean>>;
   selectedProduct: Product | null;
@@ -135,6 +201,7 @@ interface InventoryContextType {
   removeFromCart: (productId: string) => void;
   clearCart: () => void;
   completeSale: (paymentMethod: PaymentMethod, total: number, customerName?: string) => boolean;
+  createClosure: (closureData: Omit<Closure, "id" | "closedAt"> & { id?: string; closedAt?: string }) => void;
   toggleItemWarranty: (saleId: string, itemId: string, note?: string) => void;
   addSupplier: (supplier: Omit<Supplier, "id">) => Supplier;
   updateSupplier: (supplier: Supplier) => void;
@@ -226,6 +293,22 @@ function isSaleList(value: unknown): value is Sale[] {
   return Array.isArray(value) && value.every(isSale);
 }
 
+function isClosure(value: unknown): value is Closure {
+  if (typeof value !== "object" || value === null) return false;
+  const c = value as Record<string, unknown>;
+  return (
+    typeof c.id === "string" &&
+    typeof c.periodLabel === "string" &&
+    typeof c.closedAt === "string" &&
+    typeof c.totalSold === "number" &&
+    typeof c.netProfit === "number"
+  );
+}
+
+function isClosureList(value: unknown): value is Closure[] {
+  return Array.isArray(value) && value.every(isClosure);
+}
+
 function writeStored(key: string, value: unknown) {
   try {
     localStorage.setItem(key, JSON.stringify(value));
@@ -245,6 +328,10 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
 
   const [sales, setSales] = useState<Sale[]>(() =>
     readStored("quiral_sales", INITIAL_SALES, isSaleList)
+  );
+
+  const [closures, setClosures] = useState<Closure[]>(() =>
+    readStored("quiral_closures", INITIAL_CLOSURES, isClosureList)
   );
 
   // Modo Mostrador vs Costos
@@ -275,6 +362,10 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     writeStored("quiral_sales", sales);
   }, [sales]);
+
+  useEffect(() => {
+    writeStored("quiral_closures", closures);
+  }, [closures]);
 
   const addSupplier = (supData: Omit<Supplier, "id">): Supplier => {
     const newSup: Supplier = {
@@ -539,12 +630,14 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
     // Registrar venta en historial
     const newSaleItems: SaleItem[] = cart.map((cartItem) => {
       const prod = products.find((p) => p.id === cartItem.productId);
+      const batch = prod?.batches.find((b) => b.id === cartItem.batchId);
       return {
         id: "item-" + Date.now() + "-" + Math.random().toString(36).substring(2, 6),
         productId: cartItem.productId,
         productName: prod?.name || "Producto",
         qty: cartItem.quantity,
         unitPrice: cartItem.unitPrice,
+        unitCostSnapshot: batch?.cost || prod?.batches[0]?.cost || 0,
         batchId: cartItem.batchId,
         warrantyDays: prod?.warrantyDays || 15,
         warrantyClaimed: false,
@@ -588,12 +681,25 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
+  const createClosure = (
+    closureData: Omit<Closure, "id" | "closedAt"> & { id?: string; closedAt?: string }
+  ) => {
+    const newClosure: Closure = {
+      ...closureData,
+      id: closureData.id || "cycle-" + Date.now(),
+      closedAt: closureData.closedAt || new Date().toISOString(),
+    };
+    setClosures((prev) => [newClosure, ...prev]);
+  };
+
   return (
     <InventoryContext.Provider
       value={{
         suppliers,
         products,
         sales,
+        closures,
+        createClosure,
         toggleItemWarranty,
         showCosts,
         setShowCosts,

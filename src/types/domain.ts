@@ -40,6 +40,7 @@ export interface SaleItem {
   productName: string;
   qty: number;
   unitPrice: number;
+  unitCostSnapshot?: number;
   batchId?: string;
   warrantyDays: number;
   warrantyClaimed?: boolean;
@@ -55,4 +56,43 @@ export interface Sale {
   totalAmount: number;
   createdAt: string;
   items: SaleItem[];
+}
+
+export interface ClosureTopSeller {
+  id: string;
+  name: string;
+  qty: number;
+  revenue: number;
+  profit: number;
+  tx?: Array<{
+    id: string;
+    date: string;
+    customer: string;
+    qty: number;
+    price: number;
+  }>;
+}
+
+export interface ClosureTopReturned {
+  id: string;
+  name: string;
+  qty: number;
+  notes?: string[];
+}
+
+export interface Closure {
+  id: string;
+  periodLabel: string;
+  closedAt: string;
+  startDate?: string;
+  endDate?: string;
+  totalSold: number;
+  netProfit: number;
+  recoveredInvestment?: number;
+  remainingStockInvestment?: number;
+  expectedCash?: number;
+  realCashReported?: number;
+  differenceNote?: string;
+  topSellers?: ClosureTopSeller[];
+  topReturned?: ClosureTopReturned[];
 }
