@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { getStoreMembership, printSecurityWarning, signOutUser } from "../lib/authService";
 import { DEMO_STORE_ID, generateDemoSeed } from "../lib/demoSeed";
@@ -91,6 +91,12 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
   const [lastSelectedSupplierId, setLastSelectedSupplierId] = useState<string | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
 
+  // Guardias y referencias de ciclo de vida (Anti-bucles y control de concurrencia)
+  const syncInProgressRef = useRef(false);
+  const activeStoreRequestIdRef = useRef(0);
+  const lastLoadedStoreIdRef = useRef<string | null>(null);
+  const lastLoadedUserIdRef = useRef<string | null>(null);
+
   const report = useCallback((message: string) => {
     console.error(message);
     setError(message);
@@ -98,6 +104,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
 
   // Carga de datos de la tienda desde Supabase con respaldo local si es demo
   const loadData = useCallback(async (activeStore: string, isDemo = false) => {
+    const requestId = ++activeStoreRequestIdRef.current;
     setLoading(true);
 
     if (isDemo) {
@@ -117,6 +124,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         supabase.from("cycle_closings").select("data").eq("store_id", activeStore).order("closed_at", { ascending: false }),
       ]);
 
+      if (requestId !== activeStoreRequestIdRef.current) return;
       const loadedSuppliers = supRes.data?.map((r) => r.data as Supplier) ?? [];
       const loadedProducts = prodRes.data?.map((r) => r.data as Product) ?? [];
       const loadedSales = salesRes.data?.map((r) => r.data as Sale) ?? [];
@@ -128,6 +136,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         setProducts(demoData.products);
         setSales(demoData.sales);
         setClosures(demoData.closures);
+        lastLoadedStoreIdRef.current = activeStore;
       } else {
         setSuppliers(loadedSuppliers);
         setProducts(loadedProducts);
@@ -136,7 +145,9 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       }
 
       setError(null);
+      lastLoadedStoreIdRef.current = activeStore;
     } catch (fetchErr: unknown) {
+      if (requestId !== activeStoreRequestIdRef.current) return;
       const errMsg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
       console.warn("Fallo al conectar con Supabase, usando respaldo:", fetchErr);
       if (isDemo) {
@@ -145,17 +156,24 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         setProducts(demoData.products);
         setSales(demoData.sales);
         setClosures(demoData.closures);
+        lastLoadedStoreIdRef.current = activeStore;
       } else {
         report(`Error de conexión: ${errMsg || "Sin red"}`);
       }
     } finally {
-      setLoading(false);
+      if (requestId === activeStoreRequestIdRef.current) {
+        setLoading(false);
+      }
     }
   }, [report]);
 
   // Sincronización atómica e inmediata de sesión y perfil de tienda
   const syncUserSession = useCallback(
     async (providedSession?: Session | null) => {
+      // Control de concurrencia: evitar peticiones paralelas duplicadas si ya hay una sincronización en vuelo
+      if (syncInProgressRef.current) return;
+      syncInProgressRef.current = true;
+
       setLoading(true);
       try {
         const hasDemoBypass = localStorage.getItem("quiral_demo_bypass") === "true";
@@ -174,6 +192,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
           };
           setUserProfile(demoProfile);
           setStoreId(DEMO_STORE_ID);
+          lastLoadedUserIdRef.current = demoProfile.id;
           await loadData(DEMO_STORE_ID, true);
           return;
         }
@@ -205,6 +224,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
             setUserProfile(profile);
             setStoreId(membership.storeId);
             setIsDemoUser(false);
+            lastLoadedUserIdRef.current = profile.id;
             await loadData(membership.storeId, false);
           } else {
             // Fallback usando user_metadata de auth.users si no se obtuvo fila en store_members
@@ -226,16 +246,20 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
             setUserProfile(profile);
             setStoreId(fallbackStoreId);
             setIsDemoUser(false);
+            lastLoadedUserIdRef.current = profile.id;
             await loadData(fallbackStoreId, false);
           }
         } else {
           setUserProfile(null);
           setStoreId(null);
           setIsDemoUser(false);
+          lastLoadedUserIdRef.current = null;
+          lastLoadedStoreIdRef.current = null;
         }
       } catch (err) {
         console.error("Error sincronizando sesión:", err);
       } finally {
+        syncInProgressRef.current = false;
         setLoading(false);
       }
     },
@@ -257,12 +281,24 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         setLoading(false);
         localStorage.removeItem("quiral_demo_bypass");
         setIsDemoUser(false);
+        lastLoadedUserIdRef.current = null;
+        lastLoadedStoreIdRef.current = null;
         return;
+      }
+
+      // Prevenir recargas masivas e innecesarias de la base de datos ante refresco periódico de tokens JWT
+      if (event === "TOKEN_REFRESHED") {
+        if (
+          session?.user &&
+          lastLoadedUserIdRef.current === session.user.id &&
+          lastLoadedStoreIdRef.current !== null
+        ) {
+          return;
+        }
       }
 
       if (
         event === "SIGNED_IN" ||
-        event === "TOKEN_REFRESHED" ||
         event === "USER_UPDATED" ||
         event === "INITIAL_SESSION"
       ) {
@@ -404,19 +440,36 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
   const addSupplier = (data: Omit<Supplier, "id">) => {
     const value: Supplier = { ...data, id: makeId("sup") };
     setSuppliers((prev) => [value, ...prev]);
-    void persist("suppliers", value).catch((err) => report(err.message));
+    void persist("suppliers", value).catch((err: unknown) => {
+      report(err instanceof Error ? err.message : String(err));
+    });
     return value;
   };
 
   const updateSupplier = (value: Supplier) => {
     setSuppliers((prev) => prev.map((s) => (s.id === value.id ? value : s)));
-    void persist("suppliers", value).catch((err) => report(err.message));
+    void persist("suppliers", value).catch((err: unknown) => {
+      report(err instanceof Error ? err.message : String(err));
+    });
   };
 
   const deleteSupplier = (id: string) => {
     setSuppliers((prev) => prev.filter((s) => s.id !== id));
     if (storeId && !isDemoUser) {
-      void supabase.from("suppliers").delete().eq("store_id", storeId).eq("id", id);
+      void supabase
+        .from("suppliers")
+        .delete()
+        .eq("store_id", storeId)
+        .eq("id", id)
+        .then(
+          ({ error: delErr }) => {
+            if (delErr) report(`Error al eliminar proveedor: ${delErr.message}`);
+          },
+          (err: unknown) => {
+            const msg = err instanceof Error ? err.message : String(err);
+            report(`Fallo al eliminar proveedor: ${msg}`);
+          }
+        );
     }
   };
 
@@ -430,20 +483,37 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       createdAt: new Date().toISOString(),
     });
     setProducts((prev) => [value, ...prev]);
-    void persist("products", value).catch((err) => report(err.message));
+    void persist("products", value).catch((err: unknown) => {
+      report(err instanceof Error ? err.message : String(err));
+    });
     return value;
   };
 
   const updateProduct = (value: Product) => {
     const norm = normalizedProduct(value);
     setProducts((prev) => prev.map((p) => (p.id === norm.id ? norm : p)));
-    void persist("products", norm).catch((err) => report(err.message));
+    void persist("products", norm).catch((err: unknown) => {
+      report(err instanceof Error ? err.message : String(err));
+    });
   };
 
   const deleteProduct = (id: string) => {
     setProducts((prev) => prev.filter((p) => p.id !== id));
     if (storeId && !isDemoUser) {
-      void supabase.from("products").delete().eq("store_id", storeId).eq("id", id);
+      void supabase
+        .from("products")
+        .delete()
+        .eq("store_id", storeId)
+        .eq("id", id)
+        .then(
+          ({ error: delErr }) => {
+            if (delErr) report(`Error al eliminar producto: ${delErr.message}`);
+          },
+          (err: unknown) => {
+            const msg = err instanceof Error ? err.message : String(err);
+            report(`Fallo al eliminar producto: ${msg}`);
+          }
+        );
     }
   };
 
@@ -508,12 +578,20 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
   const purgeOutOfStock = () => {
     const removed = products.filter((p) => p.batches.every((b) => b.stock === 0));
     setProducts((prev) => prev.filter((p) => !removed.some((r) => r.id === p.id)));
-    if (storeId && !isDemoUser) {
+    if (storeId && !isDemoUser && removed.length > 0) {
       void Promise.all(
         removed.map((p) =>
           supabase.from("products").delete().eq("store_id", storeId).eq("id", p.id)
         )
-      );
+      )
+        .then((results) => {
+          const firstErr = results.find((r) => r.error)?.error;
+          if (firstErr) report(`Error al purgar productos: ${firstErr.message}`);
+        })
+        .catch((err: unknown) => {
+          const msg = err instanceof Error ? err.message : String(err);
+          report(`Fallo al purgar productos agotados: ${msg}`);
+        });
     }
     return removed.length;
   };
@@ -640,11 +718,17 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
           sale_data: newSale,
           lines: cart,
         })
-        .then(({ error: rpcErr }) => {
-          if (rpcErr) {
-            report(`Aviso de sincronización en venta: ${rpcErr.message}`);
+        .then(
+          ({ error: rpcErr }) => {
+            if (rpcErr) {
+              report(`Aviso de sincronización en venta: ${rpcErr.message}`);
+            }
+          },
+          (err: unknown) => {
+            const msg = err instanceof Error ? err.message : String(err);
+            report(`Fallo de red en venta: ${msg}`);
           }
-        });
+        );
     }
 
     return true;
@@ -668,7 +752,9 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
     };
 
     setSales((prev) => prev.map((s) => (s.id === saleId ? updatedSale : s)));
-    void persist("sales", updatedSale).catch((err) => report(err.message));
+    void persist("sales", updatedSale).catch((err: unknown) => {
+      report(err instanceof Error ? err.message : String(err));
+    });
   };
 
   const createClosure = (
@@ -680,7 +766,9 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       closedAt: data.closedAt ?? new Date().toISOString(),
     };
     setClosures((prev) => [value, ...prev]);
-    void persist("cycle_closings", value).catch((err) => report(err.message));
+    void persist("cycle_closings", value).catch((err: unknown) => {
+      report(err instanceof Error ? err.message : String(err));
+    });
   };
 
   const signOut = async () => {
@@ -688,6 +776,8 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
     setUserProfile(null);
     setStoreId(null);
     setIsDemoUser(false);
+    lastLoadedUserIdRef.current = null;
+    lastLoadedStoreIdRef.current = null;
     setSuppliers([]);
     setProducts([]);
     setSales([]);

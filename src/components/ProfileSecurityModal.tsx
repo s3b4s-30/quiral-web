@@ -75,9 +75,10 @@ export default function ProfileSecurityModal({
       setTimeout(() => {
         onClose();
       }, 1500);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error al actualizar credenciales:", err);
-      setError(err?.message || "No se pudieron actualizar las credenciales.");
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg || "No se pudieron actualizar las credenciales.");
     } finally {
       setLoading(false);
     }

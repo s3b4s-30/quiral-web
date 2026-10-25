@@ -111,7 +111,11 @@ La base de datos PostgreSQL en Supabase es la **única fuente de verdad** persis
 Para eliminar retrasos o recargas manuales (F5) tras iniciar sesión o registrarse:
 1. `InventoryContext` expone `syncUserSession`, una rutina memorizada con `useCallback` que inspecciona `supabase.auth.getSession()`, extrae la membresía de tienda desde `store_members` con reintento automático y fallback resiliente sobre `user.user_metadata`, y puebla inmediatamente el estado reactivo `userProfile`.
 2. El manejador de autenticación en `AuthScreen.tsx` aguarda `await onAuthSuccess()` al completar el login o registro antes de desmontarse, permitiendo una transición de vista inmediata sin latencia ni recarga de ventana.
-3. El listener de eventos de Supabase (`onAuthStateChange`) invoca `syncUserSession` ante eventos `SIGNED_IN`, `INITIAL_SESSION`, `TOKEN_REFRESHED` y `USER_UPDATED`, garantizando persistencia y recuperación automática tras desconexiones de red.
+3. El listener de eventos de Supabase (`onAuthStateChange`) cuenta con guardas de concurrencia y un mutex en vuelo (`syncInProgressRef`):
+   - **Prevención de Doble Fetch:** Evita peticiones duplicadas paralelas durante el arranque inicial (`INITIAL_SESSION` coexistente con la llamada de montaje).
+   - **Protección de Cuotas en `TOKEN_REFRESHED`:** Descarta relecturas redundantes a la base de datos ante refrescos periódicos de token JWT mientras el usuario y la tienda permanezcan inalterados, preservando ancho de banda y eliminando parpadeos de skeletons en mostrador.
+   - **Descarte de Respuestas Obsoletas (`activeStoreRequestIdRef`):** Invalida respuestas de red lentas que resuelvan tras un cambio de tenant o cierre de sesión.
+   - **Manejo Robusto de Promesas en Mutaciones:** Las operaciones asíncronas (`deleteSupplier`, `deleteProduct`, `purgeOutOfStock`, `completeSale`) capturan errores tanto en resolución fallida como en rechazos de transporte mediante el contrato estándar `PromiseLike.then(onFulfilled, onRejected)`.
 
 ### Sincronización Realtime Multicanal
 El canal `realtime:store:${storeId}` se suscribe a eventos `postgres_changes` filtrados por `store_id=eq.${storeId}` en 4 tablas:
