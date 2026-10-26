@@ -1,9 +1,22 @@
 {
-  "name": "Quiral",
+  "name": "Quiral POS",
   "short_name": "Quiral",
+  "description": "Software de punto de venta, inventario multitienda y gestión avanzada para negocios de tecnología y comercio.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
-  "lang": "es"
+  "lang": "es",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
 }
