@@ -6,6 +6,7 @@ import Navbar, { type NavbarVariant, type Tab } from "./components/Navbar";
 import NewProductModal from "./components/NewProductModal";
 import ProductDetailModal from "./components/ProductDetailModal";
 import ProfileSecurityModal from "./components/ProfileSecurityModal";
+import StoreProfileModal from "./components/StoreProfileModal";
 import PurgeConfirmModal from "./components/PurgeConfirmModal";
 import SuppliersModal from "./components/SuppliersModal";
 import TopHeader from "./components/TopHeader";
@@ -32,6 +33,8 @@ function AppInner() {
   const [navbarVariant] = useState<NavbarVariant>("floating");
   const [isSuppliersModalOpen, setIsSuppliersModalOpen] = useState(false);
   const [isProfileSecurityOpen, setIsProfileSecurityOpen] = useState(false);
+  const [isStoreProfileOpen, setIsStoreProfileOpen] = useState(false);
+  const [isInventoryFilterOpen, setIsInventoryFilterOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
   const [isModalClosing, setIsModalClosing] = useState(false);
@@ -61,6 +64,8 @@ function AppInner() {
       isPurgeModalOpen ||
       isSuppliersModalOpen ||
       isProfileSecurityOpen ||
+      isStoreProfileOpen ||
+      isInventoryFilterOpen ||
       isCheckoutOpen ||
       isSummaryModalOpen
     ) && !isModalClosing
@@ -135,6 +140,7 @@ function AppInner() {
         theme={theme}
         onThemeChange={setTheme}
         onOpenSuppliers={() => setIsSuppliersModalOpen(true)}
+        onOpenProfile={() => setIsStoreProfileOpen(true)}
         onOpenProfileSecurity={() => setIsProfileSecurityOpen(true)}
         onLogout={signOut}
       />
@@ -148,14 +154,18 @@ function AppInner() {
           theme={theme}
           onThemeChange={setTheme}
           onOpenSuppliers={() => setIsSuppliersModalOpen(true)}
-          onOpenProfileSecurity={() => setIsProfileSecurityOpen(true)}
+          onOpenProfile={() => setIsStoreProfileOpen(true)}
+        onOpenProfileSecurity={() => setIsProfileSecurityOpen(true)}
           onLogout={signOut}
         />
 
         {/* Contenedor Principal: las vistas manejan su scroll con .quiral-scroll-container */}
         <main className="h-full w-full overflow-hidden relative">
           {activeTab === "inventory" ? (
-            <InventoryView onOpenSuppliers={() => setIsSuppliersModalOpen(true)} />
+            <InventoryView
+              onOpenSuppliers={() => setIsSuppliersModalOpen(true)}
+              onFilterModalStateChange={setIsInventoryFilterOpen}
+            />
           ) : activeTab === "sell" ? (
             <PosView onCheckoutStateChange={setIsCheckoutOpen} />
           ) : activeTab === "history" ? (
@@ -241,6 +251,18 @@ function AppInner() {
             setIsSuppliersModalOpen(false);
             setIsModalClosing(false);
           }}
+        />
+      )}
+
+      {isStoreProfileOpen && (
+        <StoreProfileModal
+          isOpen={isStoreProfileOpen}
+          onStartClose={() => setIsModalClosing(true)}
+          onClose={() => {
+            setIsStoreProfileOpen(false);
+            setIsModalClosing(false);
+          }}
+          onOpenSecurity={() => setIsProfileSecurityOpen(true)}
         />
       )}
 

@@ -3,7 +3,7 @@ import {
   LogOut,
   Moon,
   MoreHorizontal,
-  ShieldCheck,
+  Store,
   Sun,
   SunMoon,
   Users,
@@ -18,6 +18,7 @@ interface TopMenuProps {
   theme: Theme;
   onThemeChange: (theme: Theme) => void;
   onOpenSuppliers?: () => void;
+  onOpenProfile?: () => void;
   onOpenProfileSecurity?: () => void;
   onLogout: () => void;
 }
@@ -26,6 +27,7 @@ export default function TopMenu({
   theme,
   onThemeChange,
   onOpenSuppliers,
+  onOpenProfile,
   onOpenProfileSecurity,
   onLogout,
 }: TopMenuProps) {
@@ -59,6 +61,15 @@ export default function TopMenu({
       document.removeEventListener("mousedown", closeOnOutsideClick);
     };
   }, [open]);
+
+  const handleProfileClick = () => {
+    setOpen(false);
+    if (onOpenProfile) {
+      onOpenProfile();
+    } else if (onOpenProfileSecurity) {
+      onOpenProfileSecurity();
+    }
+  };
 
   return (
     <div className="theme-menu relative">
@@ -107,7 +118,7 @@ export default function TopMenu({
                 </span>
               </div>
 
-              {/* Alerta de Modo Demo 30/30 Permanente */}
+              {/* Alerta de Modo Demo 30/30 */}
               {isDemoUser && (
                 <div className="mt-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-2 text-xs text-amber-700 dark:text-amber-300">
                   <div className="flex items-center gap-1.5 font-bold">
@@ -115,32 +126,13 @@ export default function TopMenu({
                     <span>Modo Demo 30/30 (Inseguro)</span>
                   </div>
                   <p className="mt-1 text-[11px] leading-relaxed opacity-90">
-                    Entorno de prueba pública sin contraseña cifrada personal. No uses datos reales.
+                    Entorno de prueba pública. No uses contraseñas ni datos sensibles reales.
                   </p>
                 </div>
               )}
             </div>
 
             <div className="my-2 border-t border-[var(--border-color)]" />
-
-            {/* Acceso a Perfil y Seguridad */}
-            {onOpenProfileSecurity && (
-              <button
-                type="button"
-                onClick={() => {
-                  setOpen(false);
-                  onOpenProfileSecurity();
-                }}
-                className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-none hover:bg-black/5 dark:hover:bg-white/5"
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-                    <ShieldCheck size={16} />
-                  </div>
-                  <span className="transition-none">Perfil y Seguridad</span>
-                </div>
-              </button>
-            )}
 
             {/* Fila Proveedores */}
             {onOpenSuppliers && (
@@ -161,6 +153,22 @@ export default function TopMenu({
                 <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-black/10 px-1.5 text-xs font-bold text-[var(--text-secondary)] dark:bg-white/10 transition-colors duration-75">
                   {suppliers.length}
                 </span>
+              </button>
+            )}
+
+            {/* Fila Perfil */}
+            {(onOpenProfile || onOpenProfileSecurity) && (
+              <button
+                type="button"
+                onClick={handleProfileClick}
+                className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-none hover:bg-black/5 dark:hover:bg-white/5"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                    <Store size={16} />
+                  </div>
+                  <span className="transition-none">Perfil</span>
+                </div>
               </button>
             )}
 
@@ -208,7 +216,7 @@ export default function TopMenu({
               </div>
             </div>
 
-            {/* Fila Cerrar sesión / Cambiar cuenta */}
+            {/* Fila Cerrar sesión */}
             <div className="mt-2 pt-2 border-t border-[var(--border-color)]">
               <button
                 type="button"

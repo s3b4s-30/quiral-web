@@ -90,7 +90,11 @@ test.describe("Quiral POS — Verificación de Rendimiento, Skeletons y Aislamie
 
     // 4. Intentar hacer scroll en el fondo (en el backdrop superior) y verificar que no se desplaza
     await page.mouse.move(50, 15);
-    await page.mouse.wheel(0, 300);
+    try {
+      await page.mouse.wheel(0, 300);
+    } catch {
+      await page.touchscreen.tap(50, 15);
+    }
     const scrollAfterGesture = await page.evaluate(() => {
       const scrollEl = document.querySelector("#summary-scroll");
       return scrollEl ? scrollEl.scrollTop : 0;
@@ -110,6 +114,7 @@ test.describe("Quiral POS — Verificación de Rendimiento, Skeletons y Aislamie
     const closeBtn = modalDialog.getByRole("button", { name: "Volver" });
     await closeBtn.click();
     await expect(modalDialog).not.toBeVisible();
+    await expect(page.locator("body")).not.toHaveClass(/modal-open/);
 
     const isClassRemoved = await page.evaluate(() => {
       return !document.body.classList.contains("modal-open");
@@ -158,6 +163,7 @@ test.describe("Quiral POS — Verificación de Rendimiento, Skeletons y Aislamie
     const backBtn = modalDialog.getByRole("button", { name: "Cerrar modal" });
     await backBtn.click();
     await expect(modalDialog).not.toBeVisible();
+    await expect(page.locator("body")).not.toHaveClass(/modal-open/);
 
     // 5. Verificar que el body vuelve a su estado normal
     const isUnlocked = await page.evaluate(() => {

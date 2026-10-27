@@ -19,6 +19,7 @@ import {
   signIn,
   signUpUser,
 } from "../lib/authService";
+import { humanizeSupabaseError } from "../utils/supabaseErrors";
 import {
   evaluatePasswordStrength,
   isValidEmail,
@@ -97,7 +98,7 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
     } catch (err: unknown) {
       console.error("Error en login:", err);
       const message = err instanceof Error ? err.message : String(err);
-      setError(message || "Credenciales incorrectas o problema de conexión.");
+      setError(humanizeSupabaseError(err));
     } finally {
       setLoading(false);
       isSubmittingRef.current = false;
@@ -121,7 +122,7 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
         isJoiningStore ? "" : storeName || "Mi tienda",
         isJoiningStore ? storeIdToJoin : undefined
       );
-      setSuccessMessage("¡Cuenta creada exitosamente! Iniciando sesión...");
+      setSuccessMessage("¡Cuenta creada exitosamente! Te enviamos un enlace de confirmación a tu correo. Por favor revísalo antes de iniciar sesión.");
       try {
         await signIn(username, registerPassword);
         await onAuthSuccess();
@@ -133,7 +134,7 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
     } catch (err: unknown) {
       console.error("Error en registro:", err);
       const message = err instanceof Error ? err.message : String(err);
-      setError(message || "No se pudo registrar la cuenta.");
+      setError(humanizeSupabaseError(err));
     } finally {
       setLoading(false);
       isSubmittingRef.current = false;
@@ -160,7 +161,7 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
     } catch (err: unknown) {
       console.error("Error en recuperación:", err);
       const message = err instanceof Error ? err.message : String(err);
-      setError(message || "No se pudo enviar el correo de recuperación.");
+      setError(humanizeSupabaseError(err));
     } finally {
       setLoading(false);
       isSubmittingRef.current = false;

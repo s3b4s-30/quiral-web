@@ -7,8 +7,9 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Quiral POS" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
 
@@ -30,8 +31,8 @@
       })(window, document, "clarity", "script", "z3jcfslvw5");
     </script>
 
-    <!-- SEO & Metadata Primaria -->
-    <title>Quiral POS — Sistema POS e Inventario para tu Tienda</title>
+    <!-- Título Principal Puesta en Marcha -->
+    <title>Quiral POS</title>
     <meta
       name="description"
       content="Software de punto de venta, inventario multitienda y gestión avanzada para negocios de tecnología y comercio."
@@ -60,7 +61,7 @@
     <meta name="google-site-verification" content="HA4_1-uloo2p8P1cOYp9tYlXGJmvPlshgxvH2d8FZ5Y" />
 
     <!-- Open Graph / Redes Sociales -->
-    <meta property="og:title" content="Quiral POS — Sistema POS e Inventario para tu Tienda" />
+    <meta property="og:title" content="Quiral POS" />
     <meta
       property="og:description"
       content="Software de punto de venta, inventario multitienda y gestión avanzada para negocios de tecnología y comercio."
@@ -72,7 +73,7 @@
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="Quiral POS — Sistema POS e Inventario para tu Tienda" />
+    <meta name="twitter:title" content="Quiral POS" />
     <meta
       name="twitter:description"
       content="Software de punto de venta, inventario multitienda y gestión avanzada para negocios de tecnología y comercio."
@@ -83,8 +84,85 @@
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <link rel="manifest" href="/manifest.json" />
+
+    <!-- Estilos de Splash Screen Nativo iOS PWA -->
+    <style>
+      #quiral-splash-screen {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background-color: #f2f2f7;
+        color: #000000;
+        transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      @media (prefers-color-scheme: dark) {
+        #quiral-splash-screen {
+          background-color: #000000;
+          color: #ffffff;
+        }
+      }
+      .splash-logo-container {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .splash-logo-img {
+        width: 80px;
+        height: 80px;
+        border-radius: 22px;
+        box-shadow: 0 10px 30px rgba(0, 122, 255, 0.25);
+        animation: splash-pulse 1.8s ease-in-out infinite;
+      }
+      .splash-title {
+        margin-top: 18px;
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+        font-size: 20px;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+      }
+      .splash-subtitle {
+        margin-top: 4px;
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+        font-size: 11px;
+        font-weight: 600;
+        color: #8e8e93;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+      @keyframes splash-pulse {
+        0%, 100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(0.96);
+          opacity: 0.85;
+        }
+      }
+      #quiral-splash-screen.splash-hidden {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+    </style>
   </head>
   <body>
+    <!-- Pantalla de Carga Nativa Anti-Flicker para PWA Standalone -->
+    <div id="quiral-splash-screen">
+      <div class="splash-logo-container">
+        <img src="/icon-192.png" alt="Quiral POS" class="splash-logo-img" />
+      </div>
+      <h1 class="splash-title">Quiral POS</h1>
+      <span class="splash-subtitle">Punto de Venta · Inventario</span>
+    </div>
+
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

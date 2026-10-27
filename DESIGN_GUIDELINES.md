@@ -101,6 +101,9 @@ Queda formalmente prohibida la reintroducción de los siguientes elementos, patr
 | **Margen superior y contención de altura en `ModalSheet` (`mt-12`)** | **Confirmada** | 2026-10-25 | Aplicación de `mt-12 sm:mt-0` y `max-h-[calc(100dvh-3.5rem)]` en `ModalSheet.tsx` para evitar que las hojas modales queden pegadas al borde superior en móviles, revelando limpiamente la píldora de arrastre y el título. |
 | **Guardas anti-bucles asíncronos y protección de cuota Supabase** | **Confirmada** | 2026-10-25 | Mutex en vuelo `syncInProgressRef`, invalidación de respuestas lentas (`activeStoreRequestIdRef`) y omisión de relecturas completas en eventos `TOKEN_REFRESHED`. |
 | **Flujo de registro interactivo con visibilidad de contraseña y checklist de 5 reglas** | **Confirmada** | 2026-10-25 | Alternancia accesible Eye/EyeOff en campos de credenciales, checklist dinámico en tiempo real de 5 reglas de seguridad, confirmación estricta y aislamiento de concurrencia anti-double-submitting en `AuthScreen.tsx` y `ProfileSecurityModal.tsx`. |
+| **Modal independiente de perfil de negocio (`StoreProfileModal`)** | **Confirmada** | 2026-10-27 | Configuración comercial (nombre de tienda, logo vía FileReader, teléfono/WhatsApp, dirección) con sincronización reactiva en `TopHeader` y `DesktopSidebar`. |
+| **Embudo multifiltro de catálogo (`AdvancedFiltersModal`)** | **Confirmada** | 2026-10-27 | Filtrado multicriterio (proveedor, stock con/crítico/agotado, rango de precios y garantía) con badge de estado activo, contador dinámico de coincidencias y desmontaje preventivo de Navbar. |
+| **Humanización centralizada de excepciones (`supabaseErrors.ts`)** | **Confirmada** | 2026-10-27 | Traducción de códigos y errores de Supabase Auth/PostgREST a español comercial amigable con avisos proactivos de verificación de correo. |
 
 ---
 

@@ -8,3 +8,12 @@ createRoot(document.getElementById("root")!).render(
     <App />
   </StrictMode>,
 );
+
+// Desvanecer splash screen nativo tras renderizar
+requestAnimationFrame(() => {
+  const splash = document.getElementById("quiral-splash-screen");
+  if (splash) {
+    splash.classList.add("splash-hidden");
+    setTimeout(() => splash.remove(), 400);
+  }
+});

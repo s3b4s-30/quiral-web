@@ -17,9 +17,10 @@ const CATEGORIES: ProductCategory[] = [
 ];
 
 // Chips para Cargadores y Cables (actualizado "Cubo" en vez de "Cubito Cargador")
-const CHARGER_SUBTYPES = ["Cubo", "Cable", "Completo [Cubo + Cable]"];
+const CHARGER_SUBTYPES = ["Cubo", "Cable", "Cargador Completo"];
 const CHARGER_BRANDS = ["iPhone", "1Hora", "Anker", "Belkin", "Tipo C"];
 const CHARGER_POWERS = ["20W", "25W", "30W", "35W", "45W", "60W"];
+const CABLE_FINISHES = ["Normal", "Trenzado"];
 
 // Chips para Forros / Fundas
 const CASE_MATERIALS = [
@@ -70,6 +71,7 @@ export default function NewProductModal({
   const [chargerSubtype, setChargerSubtype] = useState(CHARGER_SUBTYPES[0]);
   const [chargerBrand, setChargerBrand] = useState(CHARGER_BRANDS[0]);
   const [chargerPower, setChargerPower] = useState(CHARGER_POWERS[0]);
+  const [cableFinish, setCableFinish] = useState(CABLE_FINISHES[0]);
 
   const [caseMaterial, setCaseMaterial] = useState(CASE_MATERIALS[0]);
   const [caseModel, setCaseModel] = useState(CASE_MODELS[3]); // iPhone 13 / 14
@@ -81,16 +83,48 @@ export default function NewProductModal({
   const [name, setName] = useState("");
   const [priceInput, setPriceInput] = useState("");
   const [costInput, setCostInput] = useState("");
-  const [stockInput, setStockInput] = useState("10");
+  const [stockInput, setStockInput] = useState("1");
   const [warrantyDays, setWarrantyDays] = useState("15");
   const [selectedSupplierId, setSelectedSupplierId] = useState(suppliers[0]?.id || "");
   const [error, setError] = useState<string | null>(null);
+
+  const currentCost = parseCOPInput(costInput);
+  const currentPrice = parseCOPInput(priceInput);
+  const isCostGreaterThanPrice = currentPrice > 0 && currentCost > currentPrice;
+  const unitProfit = currentPrice - currentCost;
+  const marginPercent = currentCost > 0 ? Math.round((unitProfit / currentCost) * 100) : 0;
+
+  const resetForm = () => {
+    setName("");
+    setPriceInput("");
+    setCostInput("");
+    setStockInput("1");
+    setWarrantyDays("15");
+    setCategory("Cargadores y Cables");
+    setChargerSubtype(CHARGER_SUBTYPES[0]);
+    setChargerBrand(CHARGER_BRANDS[0]);
+    setChargerPower(CHARGER_POWERS[0]);
+    setCableFinish(CABLE_FINISHES[0]);
+    setError(null);
+  };
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
 
   // Auto-generate name when category or chips change
   useEffect(() => {
     let generated = "";
     if (category === "Cargadores y Cables") {
-      generated = `${chargerSubtype} ${chargerBrand} ${chargerPower}`;
+      if (chargerSubtype === "Cubo") {
+        generated = `Cubo ${chargerBrand} ${chargerPower}`;
+      } else if (chargerSubtype === "Cable") {
+        generated = `Cable ${chargerBrand} (${cableFinish})`;
+      } else {
+        // Cargador Completo
+        generated = `Cargador Completo ${chargerBrand} ${chargerPower} (${cableFinish})`;
+      }
     } else if (category === "Forros / Fundas") {
       generated = `Forro ${caseMaterial} (${caseModel})`;
     } else if (category === "Audio / AirPods") {
@@ -102,6 +136,7 @@ export default function NewProductModal({
     chargerSubtype,
     chargerBrand,
     chargerPower,
+    cableFinish,
     caseMaterial,
     caseModel,
     audioModel,
@@ -137,7 +172,13 @@ export default function NewProductModal({
 
     let subtitle = "";
     if (category === "Cargadores y Cables") {
-      subtitle = `${chargerSubtype} · ${chargerBrand}`;
+      if (chargerSubtype === "Cubo") {
+        subtitle = `Cubo · ${chargerBrand}`;
+      } else if (chargerSubtype === "Cable") {
+        subtitle = `Cable · ${chargerBrand} · ${cableFinish}`;
+      } else {
+        subtitle = `Cargador Completo · ${chargerBrand}`;
+      }
     } else if (category === "Forros / Fundas") {
       subtitle = `Forro · ${caseModel}`;
     } else {
@@ -160,12 +201,13 @@ export default function NewProductModal({
       ],
     });
 
+    resetForm();
     onClose();
   };
 
   return (
     <ModalSheet
-      onClose={onClose}
+      onClose={handleClose}
       onStartClose={onStartClose}
       title="Nuevo producto"
       footer={
@@ -259,25 +301,51 @@ export default function NewProductModal({
                 </div>
               </div>
 
-              <div>
-                <p className="mb-1.5 text-[11px] font-medium text-[var(--text-secondary)]">Potencia:</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {CHARGER_POWERS.map((pow) => (
-                    <button
-                      key={pow}
-                      type="button"
-                      onClick={() => setChargerPower(pow)}
-                      className={`rounded-xl px-2.5 py-1 text-xs font-medium transition-colors duration-75 ${
-                        chargerPower === pow
-                          ? "bg-[#007aff] text-white font-semibold shadow-sm"
-                          : "border border-[var(--border-color)] bg-[var(--bg-elevated)] text-[var(--text-primary)]"
-                      }`}
-                    >
-                      {pow}
-                    </button>
-                  ))}
+              {/* Potencia: Visible para Cubo y Cargador Completo */}
+              {(chargerSubtype === "Cubo" || chargerSubtype === "Cargador Completo") && (
+                <div>
+                  <p className="mb-1.5 text-[11px] font-medium text-[var(--text-secondary)]">Potencia:</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {CHARGER_POWERS.map((pow) => (
+                      <button
+                        key={pow}
+                        type="button"
+                        onClick={() => setChargerPower(pow)}
+                        className={`rounded-xl px-2.5 py-1 text-xs font-medium transition-colors duration-75 ${
+                          chargerPower === pow
+                            ? "bg-[#007aff] text-white font-semibold shadow-sm"
+                            : "border border-[var(--border-color)] bg-[var(--bg-elevated)] text-[var(--text-primary)]"
+                        }`}
+                      >
+                        {pow}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Acabado: Visible para Cable y Cargador Completo */}
+              {(chargerSubtype === "Cable" || chargerSubtype === "Cargador Completo") && (
+                <div>
+                  <p className="mb-1.5 text-[11px] font-medium text-[var(--text-secondary)]">Acabado del cable:</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {CABLE_FINISHES.map((finish) => (
+                      <button
+                        key={finish}
+                        type="button"
+                        onClick={() => setCableFinish(finish)}
+                        className={`rounded-xl px-2.5 py-1 text-xs font-medium transition-colors duration-75 ${
+                          cableFinish === finish
+                            ? "bg-[#007aff] text-white font-semibold shadow-sm"
+                            : "border border-[var(--border-color)] bg-[var(--bg-elevated)] text-[var(--text-primary)]"
+                        }`}
+                      >
+                        {finish}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           )}
 
@@ -384,14 +452,35 @@ export default function NewProductModal({
           />
         </div>
 
-        {/* Precios (Venta y Costo) */}
+        {/* Precios (Costo a la izquierda, Venta a la derecha con tabIndex y validación visual) */}
         <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">
+              Costo de compra
+            </label>
+            <input
+              type="text"
+              tabIndex={1}
+              value={costInput}
+              onChange={(e) => {
+                const num = parseCOPInput(e.target.value);
+                setCostInput(num > 0 ? formatCOP(num) : "");
+              }}
+              placeholder="$0"
+              className={`tabular-nums w-full rounded-xl border bg-[var(--bg-elevated)] px-3 py-2.5 text-sm font-medium outline-none transition-colors ${
+                isCostGreaterThanPrice
+                  ? "border-[#ff3b30] text-[#ff3b30] focus:border-[#ff3b30]"
+                  : "border-[var(--border-color)] text-[var(--text-secondary)] focus:border-[#007aff]"
+              }`}
+            />
+          </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">
               Precio de venta *
             </label>
             <input
               type="text"
+              tabIndex={2}
               value={priceInput}
               onChange={(e) => {
                 const num = parseCOPInput(e.target.value);
@@ -401,35 +490,38 @@ export default function NewProductModal({
               className="tabular-nums w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-elevated)] px-3 py-2.5 text-sm font-bold text-[var(--text-primary)] outline-none focus:border-[#007aff]"
             />
           </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">
-              Costo de compra
-            </label>
-            <input
-              type="text"
-              value={costInput}
-              onChange={(e) => {
-                const num = parseCOPInput(e.target.value);
-                setCostInput(num > 0 ? formatCOP(num) : "");
-              }}
-              placeholder="$0"
-              className="tabular-nums w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-elevated)] px-3 py-2.5 text-sm font-medium text-[var(--text-secondary)] outline-none focus:border-[#007aff]"
-            />
-          </div>
         </div>
 
-        {/* Cantidad y Garantía */}
+        {/* Validación Visual de Margen ($0 <= costo <= precio) */}
+        {currentPrice > 0 && currentCost > 0 && (
+          <div
+            className={`rounded-xl px-3 py-2 text-xs font-semibold flex items-center justify-between ${
+              isCostGreaterThanPrice
+                ? "bg-[#ff3b30]/15 text-[#ff3b30] border border-[#ff3b30]/30"
+                : "bg-[#30d158]/15 text-[#30d158] border border-[#30d158]/30"
+            }`}
+          >
+            <span>{isCostGreaterThanPrice ? "⚠️ El costo supera el precio de venta" : "Margen de ganancia estimado"}</span>
+            <span className="tabular-nums">
+              {isCostGreaterThanPrice
+                ? `Pérdida: -${formatCOP(currentCost - currentPrice)}`
+                : `+${formatCOP(unitProfit)} (${marginPercent}%)`}
+            </span>
+          </div>
+        )}
+
+        {/* Stock inicial y Garantía */}
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">
-              Cantidad inicial
+              Stock inicial
             </label>
             <input
               type="number"
               min="0"
               value={stockInput}
               onChange={(e) => setStockInput(e.target.value)}
-              placeholder="0"
+              placeholder="1"
               className="tabular-nums w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-elevated)] px-3 py-2.5 text-sm font-semibold text-[var(--text-primary)] outline-none focus:border-[#007aff]"
             />
           </div>

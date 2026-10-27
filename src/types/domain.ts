@@ -99,12 +99,25 @@ export interface Closure {
   topReturned?: ClosureTopReturned[];
 }
 
+export interface StoreProfile {
+  storeName: string;
+  logoUrl?: string;
+  phone?: string;
+  address?: string;
+}
+
 export interface UserProfile {
   id: string;
   email: string;
   username: string;
   storeId: string;
   storeName: string;
+  storePhone?: string;
+  storeAddress?: string;
+  storeLogoUrl?: string;
+  phone?: string;
+  address?: string;
+  logoUrl?: string;
   role: "owner" | "staff";
   isDemoUser?: boolean;
 }

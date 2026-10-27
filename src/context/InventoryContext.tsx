@@ -51,12 +51,26 @@ interface InventoryContextType {
   adjustMasterStock: (productId: string, delta: number) => void;
   addBatchToProduct: (productId: string, batch: Omit<Batch, "id">) => void;
   updateProductPrice: (productId: string, price: number) => void;
+  updateStoreProfile: (updates: {
+    storeName: string;
+    storePhone?: string;
+    storeAddress?: string;
+    storeLogoUrl?: string;
+  }) => Promise<void>;
   purgeOutOfStock: () => number;
   signOut: () => Promise<void>;
   refreshData: () => Promise<void>;
 }
 
 const InventoryContext = createContext<InventoryContextType | undefined>(undefined);
+const getStoredStoreProfile = (storeId: string): Partial<UserProfile> => {
+  try {
+    const raw = localStorage.getItem(`quiral_store_profile_${storeId}`);
+    if (raw) return JSON.parse(raw) as Partial<UserProfile>;
+  } catch {}
+  return {};
+};
+
 const makeId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
 
 const normalizedProduct = (p: Product): Product => ({
@@ -181,12 +195,16 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         if (hasDemoBypass) {
           printSecurityWarning();
           setIsDemoUser(true);
+          const localStore = getStoredStoreProfile(DEMO_STORE_ID);
           const demoProfile: UserProfile = {
             id: "demo-user-30",
             email: "demo30@quiral.xyz",
             username: "30",
             storeId: DEMO_STORE_ID,
-            storeName: "Quiral Demo 30",
+            storeName: localStore.storeName || "Quiral Demo 30",
+            storePhone: localStore.storePhone,
+            storeAddress: localStore.storeAddress,
+            storeLogoUrl: localStore.storeLogoUrl,
             role: "owner",
             isDemoUser: true,
           };
@@ -212,12 +230,16 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
           }
 
           if (membership) {
+            const localStore = getStoredStoreProfile(membership.storeId);
             const profile: UserProfile = {
               id: session.user.id,
               email: session.user.email || "",
               username: membership.username,
               storeId: membership.storeId,
-              storeName: membership.storeName,
+              storeName: localStore.storeName || membership.storeName,
+              storePhone: localStore.storePhone,
+              storeAddress: localStore.storeAddress,
+              storeLogoUrl: localStore.storeLogoUrl,
               role: membership.role,
               isDemoUser: false,
             };
@@ -234,12 +256,16 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
             const fallbackUsername =
               (meta.username as string) || session.user.email?.split("@")[0] || "Usuario";
 
+            const localStore = getStoredStoreProfile(fallbackStoreId);
             const profile: UserProfile = {
               id: session.user.id,
               email: session.user.email || "",
               username: fallbackUsername,
               storeId: fallbackStoreId,
-              storeName: fallbackStoreName,
+              storeName: localStore.storeName || fallbackStoreName,
+              storePhone: localStore.storePhone,
+              storeAddress: localStore.storeAddress,
+              storeLogoUrl: localStore.storeLogoUrl,
               role: "owner",
               isDemoUser: false,
             };
@@ -771,6 +797,54 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  const updateStoreProfile = async (updates: {
+    storeName: string;
+    storePhone?: string;
+    storeAddress?: string;
+    storeLogoUrl?: string;
+  }) => {
+    if (!userProfile) return;
+    const cleanName = updates.storeName.trim() || userProfile.storeName;
+    const cleanPhone = updates.storePhone?.trim();
+    const cleanAddress = updates.storeAddress?.trim();
+    const cleanLogo = updates.storeLogoUrl;
+
+    const updatedProfile: UserProfile = {
+      ...userProfile,
+      storeName: cleanName,
+      storePhone: cleanPhone,
+      storeAddress: cleanAddress,
+      storeLogoUrl: cleanLogo,
+    };
+
+    setUserProfile(updatedProfile);
+
+    try {
+      localStorage.setItem(
+        `quiral_store_profile_${userProfile.storeId}`,
+        JSON.stringify({
+          storeName: cleanName,
+          storePhone: cleanPhone,
+          storeAddress: cleanAddress,
+          storeLogoUrl: cleanLogo,
+        })
+      );
+    } catch (err) {
+      console.warn("Error guardando perfil de tienda en localStorage:", err);
+    }
+
+    if (!isDemoUser && userProfile.storeId) {
+      try {
+        await supabase
+          .from("stores")
+          .update({ name: cleanName })
+          .eq("id", userProfile.storeId);
+      } catch (dbErr) {
+        console.warn("Aviso al actualizar tabla stores:", dbErr);
+      }
+    }
+  };
+
   const signOut = async () => {
     await signOutUser();
     setUserProfile(null);
@@ -836,6 +910,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         addBatchToProduct,
         updateProductPrice,
         purgeOutOfStock,
+        updateStoreProfile,
         signOut,
         refreshData,
       }}

@@ -12,6 +12,7 @@ interface TopHeaderProps {
   theme: Theme;
   onThemeChange: (theme: Theme) => void;
   onOpenSuppliers: () => void;
+  onOpenProfile?: () => void;
   onOpenProfileSecurity?: () => void;
   onLogout: () => void;
   variant?: HeaderVariant;
@@ -42,11 +43,12 @@ export default function TopHeader({
   theme,
   onThemeChange,
   onOpenSuppliers,
+  onOpenProfile,
   onOpenProfileSecurity,
   onLogout,
   variant = "default",
 }: TopHeaderProps) {
-  const { setIsNewProductModalOpen, setIsPurgeModalOpen, showCosts, setShowCosts, isDemoUser } = useInventory();
+  const { userProfile, setIsNewProductModalOpen, setIsPurgeModalOpen, showCosts, setShowCosts, isDemoUser } = useInventory();
 
   const title = TAB_TITLES[activeTab] || "Quiral";
   const isAccent = variant === "accent";
@@ -59,7 +61,14 @@ export default function TopHeader({
     >
       <div className="mx-auto flex max-w-xl md:max-w-4xl lg:max-w-5xl items-center justify-between gap-3">
         {/* Título: flexible con truncamiento para nunca empujar los controles */}
-        <div className="flex items-center gap-2 min-w-0 flex-1">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          {userProfile?.storeLogoUrl && (
+            <img
+              src={userProfile.storeLogoUrl}
+              alt={userProfile.storeName || "Logo"}
+              className="h-8 w-8 rounded-xl object-cover border border-[var(--border-color)] shrink-0 shadow-sm"
+            />
+          )}
           <button
             type="button"
             onClick={() => onTabChange(activeTab)}
@@ -150,6 +159,7 @@ export default function TopHeader({
             theme={theme}
             onThemeChange={onThemeChange}
             onOpenSuppliers={onOpenSuppliers}
+            onOpenProfile={onOpenProfile}
             onOpenProfileSecurity={onOpenProfileSecurity}
             onLogout={onLogout}
           />

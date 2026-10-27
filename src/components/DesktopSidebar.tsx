@@ -25,6 +25,7 @@ interface DesktopSidebarProps {
   theme: Theme;
   onThemeChange: (theme: Theme) => void;
   onOpenSuppliers: () => void;
+  onOpenProfile?: () => void;
   onOpenProfileSecurity?: () => void;
   onLogout: () => void;
 }
@@ -43,6 +44,7 @@ export default function DesktopSidebar({
   theme,
   onThemeChange,
   onOpenSuppliers,
+  onOpenProfile,
   onOpenProfileSecurity,
   onLogout,
 }: DesktopSidebarProps) {
@@ -62,8 +64,16 @@ export default function DesktopSidebar({
       {/* 1. Cabecera / Identidad */}
       <div>
         <div className="flex items-center gap-3 px-2 py-2">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#007aff] text-white shadow-md shadow-[#007aff]/30">
-            <Store size={22} />
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#007aff] text-white shadow-md shadow-[#007aff]/30 border border-[var(--border-color)]">
+            {userProfile?.storeLogoUrl ? (
+              <img
+                src={userProfile.storeLogoUrl}
+                alt={userProfile.storeName || "Logo"}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <Store size={22} />
+            )}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
@@ -152,6 +162,18 @@ export default function DesktopSidebar({
           <Users size={16} />
           <span>Gestión Proveedores</span>
         </button>
+
+        {/* Acceso a Perfil de Tienda */}
+        {onOpenProfile && (
+          <button
+            type="button"
+            onClick={onOpenProfile}
+            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-black/5 hover:text-[var(--text-primary)] dark:hover:bg-white/5 transition-colors"
+          >
+            <Store size={16} />
+            <span>Perfil de Tienda</span>
+          </button>
+        )}
 
         {/* Acceso a Perfil y Seguridad */}
         {onOpenProfileSecurity && (
